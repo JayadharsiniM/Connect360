@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { workersService } from '../../services/workersService';
-import { Star, MapPin, Clock, Award, Calendar, CheckCircle } from 'lucide-react';
-import { DAYS_OF_WEEK } from '../../config/constants';
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function WorkerDetail() {
   const { id } = useParams();
@@ -10,9 +10,7 @@ export default function WorkerDetail() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadWorker();
-  }, [id]);
+  useEffect(() => { loadWorker(); }, [id]);
 
   async function loadWorker() {
     try {
@@ -22,160 +20,229 @@ export default function WorkerDetail() {
       ]);
       setWorker(workerRes.data.worker);
       setReviews(reviewsRes.data.reviews || []);
-    } catch (err) {
-      console.error('Error loading worker:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }
 
   if (loading) {
-    return <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-      <div className="h-48 bg-gray-200 rounded-xl"></div>
-    </div>;
+    return (
+      <div className="pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto">
+        <div className="animate-pulse flex flex-col gap-stack-lg">
+          <div className="h-6 bg-surface-container-high rounded w-24" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+            <div className="md:col-span-2 h-64 bg-surface-container-high rounded-xl" />
+            <div className="h-64 bg-surface-container-high rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!worker) {
-    return <div className="card text-center py-12"><p className="text-gray-600">Worker not found.</p></div>;
+    return (
+      <div className="pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto text-center py-stack-xl">
+        <span className="material-symbols-outlined text-on-surface-variant text-[48px]">person_off</span>
+        <h2 className="font-manrope text-headline-sm text-on-surface mt-4">Worker not found</h2>
+        <Link to="/customer/workers" className="btn-secondary mt-4 inline-block">Back to search</Link>
+      </div>
+    );
   }
 
+  // Group availability by day
+  const availByDay = {};
+  (worker.availability || []).forEach((slot) => {
+    const day = slot.day_of_week;
+    if (!availByDay[day]) availByDay[day] = [];
+    availByDay[day].push(slot);
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Back link */}
-      <Link to="/customer/workers" className="text-sm text-primary-600 hover:text-primary-700">
-        ← Back to workers
+    <div className="pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto flex flex-col gap-stack-lg pb-24 md:pb-stack-xl">
+      {/* Back */}
+      <Link to="/customer/workers" className="flex items-center gap-1 font-hanken text-body-sm text-on-surface-variant hover:text-secondary w-fit">
+        <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+        Back to search
       </Link>
 
-      {/* Profile Card */}
-      <div className="card">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{worker.full_name}</h1>
+      {/* Profile Header Bento */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+        {/* Main Profile Card */}
+        <div className="md:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-2 p-stack-lg flex flex-col md:flex-row gap-stack-lg items-center md:items-start relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-container to-surface-container-lowest opacity-50 pointer-events-none" />
+          
+          <div className="relative z-10 w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
+            <div className="w-full h-full rounded-full border-4 border-surface-container-lowest shadow-lg bg-surface-container-high flex items-center justify-center">
+              <span className="material-symbols-outlined text-primary text-[60px]">person</span>
+            </div>
+            {worker.is_verified && (
+              <div className="absolute bottom-2 right-2 bg-secondary text-on-secondary rounded-full p-1 border-2 border-surface-container-lowest flex items-center justify-center shadow-sm">
+                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+              </div>
+            )}
+          </div>
+
+          <div className="relative z-10 flex-grow text-center md:text-left flex flex-col gap-1">
+            <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">{worker.full_name}</h1>
+            <p className="font-manrope text-headline-sm text-on-surface-variant flex items-center justify-center md:justify-start gap-2">
+              {worker.city || 'Service Professional'}
               {worker.is_verified && (
-                <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                  <CheckCircle size={12} /> Verified
-                </span>
+                <span className="px-2 py-0.5 bg-surface-container-low text-primary text-xs rounded-full font-hanken text-label-sm">Verified</span>
+              )}
+            </p>
+
+            <div className="flex items-center justify-center md:justify-start gap-stack-md mt-2 text-on-surface-variant">
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-secondary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <span className="font-manrope text-headline-sm text-primary">{worker.rating_avg || 0}</span>
+                <span className="font-hanken text-body-sm">({worker.rating_count || 0} Reviews)</span>
+              </div>
+              {worker.experience_years > 0 && (
+                <div className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[18px]">work</span>
+                  <span className="font-hanken text-body-sm">{worker.experience_years} yrs experience</span>
+                </div>
               )}
             </div>
-            {worker.city && (
-              <p className="text-gray-600 flex items-center gap-1 mt-1">
-                <MapPin size={16} /> {worker.city}
-              </p>
-            )}
-            {worker.bio && <p className="text-gray-700 mt-3 max-w-2xl">{worker.bio}</p>}
-          </div>
 
+            {/* Skills */}
+            {worker.skills?.length > 0 && (
+              <div className="mt-stack-md flex flex-wrap gap-2 justify-center md:justify-start">
+                {worker.skills.map((skill, i) => (
+                  <span key={i} className="px-3 py-1 bg-surface-container text-on-surface rounded-full font-hanken text-label-sm">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Action / Booking Card */}
+        <div className="bg-primary-container text-on-primary-container rounded-xl p-stack-lg flex flex-col justify-between shadow-level-3">
+          <div>
+            <h3 className="font-manrope text-headline-md text-on-primary mb-stack-sm">Book Service</h3>
+            <p className="font-hanken text-body-sm mb-stack-md text-primary-fixed-dim">
+              {worker.is_available ? 'Currently accepting bookings' : 'Currently unavailable'}
+            </p>
+            <div className="flex justify-between items-center py-2 border-b border-on-primary-container/20">
+              <span className="font-hanken text-body-sm text-primary-fixed-dim">Hourly Rate</span>
+              <span className="font-manrope text-headline-sm text-on-primary">₹{worker.hourly_rate || 0}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-on-primary-container/20">
+              <span className="font-hanken text-body-sm text-primary-fixed-dim">Experience</span>
+              <span className="font-manrope text-headline-sm text-on-primary">{worker.experience_years || 0} yrs</span>
+            </div>
+            <div className="flex justify-between items-center py-2">
+              <span className="font-hanken text-body-sm text-primary-fixed-dim">Completed Jobs</span>
+              <span className="font-manrope text-headline-sm text-on-primary">{worker.rating_count || 0}+</span>
+            </div>
+          </div>
           <Link
             to={`/customer/book/${worker.id}`}
-            className="btn-primary flex items-center gap-2 whitespace-nowrap"
+            className="mt-stack-md w-full bg-secondary text-on-secondary font-manrope text-headline-sm py-3 rounded-lg hover:bg-secondary-container transition-colors shadow-md flex items-center justify-center gap-2"
           >
-            <Calendar size={18} /> Book Now
+            Book Now
+            <span className="material-symbols-outlined">arrow_forward</span>
           </Link>
         </div>
+      </section>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1">
-              <Star size={18} className="text-yellow-500 fill-yellow-500" />
-              <span className="text-xl font-bold">{worker.rating_avg || '0.0'}</span>
+      {/* Detailed Content */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+        {/* Left: About & Services */}
+        <div className="lg:col-span-2 flex flex-col gap-stack-lg">
+          {/* About */}
+          {worker.bio && (
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1">
+              <h2 className="font-manrope text-headline-lg-mobile text-primary mb-stack-md">About</h2>
+              <p className="font-hanken text-body-lg text-on-surface-variant leading-relaxed">{worker.bio}</p>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{worker.rating_count || 0} reviews</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-gray-900">{worker.experience_years || 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Years experience</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-primary-600">₹{worker.hourly_rate || 0}</p>
-            <p className="text-xs text-gray-500 mt-1">Per hour</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-bold text-green-600">
-              {worker.is_available ? 'Available' : 'Busy'}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">Status</p>
-          </div>
-        </div>
-      </div>
+          )}
 
-      {/* Skills & Services */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {worker.skills && worker.skills.length > 0 && (
-          <div className="card">
-            <h2 className="font-semibold text-gray-900 mb-3">Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {worker.skills.map((skill, i) => (
-                <span key={i} className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-sm">
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {worker.services && worker.services.length > 0 && (
-          <div className="card">
-            <h2 className="font-semibold text-gray-900 mb-3">Services Offered</h2>
-            <div className="flex flex-wrap gap-2">
-              {worker.services.map((service) => (
-                <span key={service.id} className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm">
-                  {service.name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Availability */}
-      {worker.availability && worker.availability.length > 0 && (
-        <div className="card">
-          <h2 className="font-semibold text-gray-900 mb-3">Weekly Availability</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-            {worker.availability.map((slot, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm bg-gray-50 px-3 py-2 rounded-lg">
-                <Calendar size={14} className="text-gray-400" />
-                <span className="font-medium">{DAYS_OF_WEEK[slot.day_of_week]}</span>
-                <span className="text-gray-600">{slot.start_time} - {slot.end_time}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Reviews */}
-      <div className="card">
-        <h2 className="font-semibold text-gray-900 mb-4">Reviews ({reviews.length})</h2>
-        {reviews.length === 0 ? (
-          <p className="text-gray-500 text-sm">No reviews yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {reviews.map((review) => (
-              <div key={review.id} className="border-b border-gray-100 pb-4 last:border-0">
-                <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        size={14}
-                        className={star <= review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}
-                      />
-                    ))}
+          {/* Services */}
+          {worker.services?.length > 0 && (
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1">
+              <h2 className="font-manrope text-headline-lg-mobile text-primary mb-stack-md">Services Offered</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+                {worker.services.map((svc, i) => (
+                  <div key={i} className="p-stack-md border border-outline-variant rounded-lg hover:border-secondary transition-colors group">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="material-symbols-outlined text-secondary text-[28px]">handyman</span>
+                      <span className="font-manrope text-headline-sm text-primary">
+                        ₹{worker.hourly_rate || 0}<span className="font-hanken text-body-sm text-on-surface-variant">/hr</span>
+                      </span>
+                    </div>
+                    <h4 className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">{svc.name}</h4>
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{review.customer_name}</span>
-                  <span className="text-xs text-gray-400">{review.created_at?.split('T')[0]}</span>
-                </div>
-                {review.comment && (
-                  <p className="text-sm text-gray-600 mt-1">{review.comment}</p>
-                )}
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Schedule & Reviews */}
+        <div className="flex flex-col gap-stack-lg">
+          {/* Availability */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1">
+            <h2 className="font-manrope text-headline-md text-primary mb-stack-md flex items-center gap-2">
+              <span className="material-symbols-outlined text-secondary">calendar_month</span>
+              Availability
+            </h2>
+            <div className="flex flex-col gap-1">
+              {DAYS.map((day, idx) => {
+                // Map: Mon=1, Tue=2, ..., Sun=0
+                const dayIdx = idx === 6 ? 0 : idx + 1;
+                const slots = availByDay[dayIdx];
+                return (
+                  <div key={idx} className="flex justify-between items-center py-2 border-b border-outline-variant/50 last:border-0">
+                    <span className="font-hanken text-body-md font-medium text-primary">{day}</span>
+                    <span className="font-hanken text-body-md text-on-surface-variant">
+                      {slots ? `${slots[0].start_time} - ${slots[0].end_time}` : 'Closed'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Reviews */}
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1 flex-grow">
+            <div className="flex justify-between items-center mb-stack-md">
+              <h2 className="font-manrope text-headline-md text-primary">Reviews</h2>
+              {reviews.length > 3 && (
+                <span className="font-hanken text-label-md text-secondary">View All</span>
+              )}
+            </div>
+            {reviews.length > 0 ? (
+              <div className="flex flex-col gap-stack-md">
+                {reviews.slice(0, 4).map((review, i) => (
+                  <div key={i} className="p-stack-sm rounded-lg bg-surface-container-low border border-outline-variant/30">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex text-secondary">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <span
+                            key={s}
+                            className={`material-symbols-outlined text-sm ${s <= review.rating ? 'text-[#F59E0B]' : 'text-outline-variant'}`}
+                            style={{ fontVariationSettings: "'FILL' 1" }}
+                          >
+                            star
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="font-hanken text-body-sm text-on-surface italic">"{review.comment}"</p>
+                    )}
+                    <p className="font-hanken text-label-sm text-primary mt-2">- {review.customer_name}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="font-hanken text-body-sm text-on-surface-variant text-center py-4">No reviews yet</p>
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

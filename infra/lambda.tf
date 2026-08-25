@@ -3,16 +3,41 @@
 # 6 Lambdas with route-based multiplexing, NO VPC, using DynamoDB
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# CloudWatch Log Groups with retention (prevents unlimited log accumulation)
+# Free tier: 5 GB ingestion/month. 7-day retention keeps storage near zero.
+# -----------------------------------------------------------------------------
+resource "aws_cloudwatch_log_group" "lambda_logs" {
+  for_each = toset([
+    "${var.project_name}-auth-${var.environment}",
+    "${var.project_name}-services-${var.environment}",
+    "${var.project_name}-workers-${var.environment}",
+    "${var.project_name}-bookings-${var.environment}",
+    "${var.project_name}-verification-${var.environment}",
+    "${var.project_name}-admin-${var.environment}",
+  ])
+
+  name              = "/aws/lambda/${each.value}"
+  retention_in_days = 7
+
+  tags = { Name = "${each.value}-logs" }
+}
+
 # Environment variables shared across all Lambdas
+# Note: auth Lambda uses a separate env block to avoid circular dependency
+# (Cognito references auth Lambda, so auth Lambda cannot reference Cognito)
 locals {
-  lambda_env_vars = {
-    ENVIRONMENT       = var.environment
-    DYNAMODB_TABLE    = aws_dynamodb_table.main.name
-    ACTIVITY_TABLE    = aws_dynamodb_table.activity.name
-    S3_BUCKET         = aws_s3_bucket.verification_docs.id
-    COGNITO_USER_POOL = aws_cognito_user_pool.main.id
-    AWS_REGION_NAME   = var.aws_region
+  lambda_env_vars_base = {
+    ENVIRONMENT    = var.environment
+    DYNAMODB_TABLE = aws_dynamodb_table.main.name
+    ACTIVITY_TABLE = aws_dynamodb_table.activity.name
+    S3_BUCKET      = aws_s3_bucket.verification_docs.id
+    AWS_REGION_NAME = var.aws_region
   }
+
+  lambda_env_vars = merge(local.lambda_env_vars_base, {
+    COGNITO_USER_POOL = aws_cognito_user_pool.main.id
+  })
 }
 
 # -----------------------------------------------------------------------------
@@ -30,7 +55,7 @@ resource "aws_lambda_function" "auth" {
   source_code_hash = filebase64sha256("${path.module}/lambda_packages/auth.zip")
 
   environment {
-    variables = local.lambda_env_vars
+    variables = local.lambda_env_vars_base
   }
 
   tags = { Name = "${var.project_name}-auth", Domain = "authentication" }

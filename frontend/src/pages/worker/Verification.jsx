@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { verificationService } from '../../services/verificationService';
-import { Upload, FileText, CheckCircle, XCircle, Clock, Shield } from 'lucide-react';
-import { DOCUMENT_TYPES } from '../../config/constants';
+import StatusBadge from '../../components/StatusBadge';
+
+const DOCUMENT_TYPES = {
+  id_proof: 'ID Proof',
+  address_proof: 'Address Proof',
+  certification: 'Certification',
+};
 
 export default function WorkerVerification() {
   const [documents, setDocuments] = useState([]);
@@ -15,6 +20,7 @@ export default function WorkerVerification() {
     file: null,
   });
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadStatus();
@@ -26,6 +32,7 @@ export default function WorkerVerification() {
       setDocuments(res.data.documents || []);
       setIsFullyVerified(res.data.is_fully_verified || false);
     } catch (err) {
+      setError('Failed to load verification status.');
       console.error('Error loading verification status:', err);
     } finally {
       setLoading(false);
@@ -49,17 +56,21 @@ export default function WorkerVerification() {
     try {
       // Step 1: Get pre-signed URL
       const contentType = uploadForm.file.type || 'application/pdf';
-      const urlRes = await verificationService.getUploadUrl(
-        uploadForm.file.name,
-        contentType
-      );
+      const urlRes = await verificationService.getUploadUrl({
+        file_name: uploadForm.file.name,
+        content_type: contentType,
+      });
       const { upload_url, s3_key } = urlRes.data;
 
       // Step 2: Upload file directly to S3
-      await verificationService.uploadToS3(upload_url, uploadForm.file, contentType);
+      await fetch(upload_url, {
+        method: 'PUT',
+        body: uploadForm.file,
+        headers: { 'Content-Type': contentType },
+      });
 
       // Step 3: Submit verification record
-      await verificationService.submit({
+      await verificationService.submitDocument({
         document_type: uploadForm.document_type,
         document_name: uploadForm.document_name,
         s3_key: s3_key,
@@ -76,35 +87,82 @@ export default function WorkerVerification() {
     }
   };
 
-  const statusIcon = (status) => {
+  const getStatusIcon = (status) => {
     switch (status) {
-      case 'approved': return <CheckCircle size={16} className="text-green-600" />;
-      case 'rejected': return <XCircle size={16} className="text-red-600" />;
-      default: return <Clock size={16} className="text-yellow-600" />;
+      case 'approved':
+        return 'check_circle';
+      case 'rejected':
+        return 'cancel';
+      default:
+        return 'pending';
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'approved':
+        return 'text-success';
+      case 'rejected':
+        return 'text-error';
+      default:
+        return 'text-warning';
     }
   };
 
   if (loading) {
-    return <div className="animate-pulse"><div className="h-64 bg-gray-200 rounded-xl"></div></div>;
+    return (
+      <div className="pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto">
+        <div className="animate-pulse flex flex-col gap-stack-lg">
+          <div className="h-8 bg-surface-container-high rounded-lg w-2/3" />
+          <div className="h-5 bg-surface-container-high rounded-lg w-1/3" />
+          <div className="h-24 bg-surface-container-high rounded-xl" />
+          <div className="h-48 bg-surface-container-high rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto">
+        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-12 text-center shadow-level-1">
+          <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">error</span>
+          <h3 className="font-manrope text-headline-sm text-on-surface mb-2">Error</h3>
+          <p className="font-hanken text-body-md text-on-surface-variant">{error}</p>
+          <button onClick={loadStatus} className="btn-primary mt-4">Retry</button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Verification</h1>
-        <p className="text-gray-600 mt-1">Upload documents to verify your identity and skills</p>
-      </div>
+    <div className="pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto flex flex-col gap-stack-lg pb-24 md:pb-stack-xl">
+      {/* Header */}
+      <section className="flex flex-col gap-stack-sm">
+        <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">Verification</h1>
+        <p className="font-hanken text-body-md text-on-surface-variant">
+          Upload documents to verify your identity and skills
+        </p>
+      </section>
 
       {/* Verification Status Banner */}
-      <div className={`card flex items-center gap-4 ${isFullyVerified ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isFullyVerified ? 'bg-green-100' : 'bg-yellow-100'}`}>
-          <Shield className={`w-6 h-6 ${isFullyVerified ? 'text-green-600' : 'text-yellow-600'}`} />
+      <div className={`bg-surface-container-lowest rounded-xl border p-6 shadow-level-1 flex items-center gap-4 ${
+        isFullyVerified ? 'border-success' : 'border-warning'
+      }`}>
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
+          isFullyVerified ? 'bg-success-container' : 'bg-warning-container'
+        }`}>
+          <span className={`material-symbols-outlined text-[28px] ${
+            isFullyVerified ? 'text-success' : 'text-warning'
+          }`}>
+            {isFullyVerified ? 'verified_user' : 'gpp_maybe'}
+          </span>
         </div>
         <div>
-          <h3 className={`font-semibold ${isFullyVerified ? 'text-green-800' : 'text-yellow-800'}`}>
+          <h3 className="font-manrope text-headline-sm text-on-surface">
             {isFullyVerified ? 'Fully Verified' : 'Verification Incomplete'}
           </h3>
-          <p className={`text-sm ${isFullyVerified ? 'text-green-700' : 'text-yellow-700'}`}>
+          <p className="font-hanken text-body-sm text-on-surface-variant">
             {isFullyVerified
               ? 'Your profile is verified and visible to customers.'
               : 'Upload required documents to get verified and start receiving bookings.'}
@@ -114,49 +172,57 @@ export default function WorkerVerification() {
 
       {/* Message */}
       {message && (
-        <div className={`p-3 rounded-lg text-sm ${message.includes('success') ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-          {message}
+        <div className={`rounded-lg p-4 flex items-center gap-3 ${
+          message.includes('success') ? 'bg-success-container' : 'bg-error-container'
+        }`}>
+          <span className="material-symbols-outlined text-[20px]">
+            {message.includes('success') ? 'check_circle' : 'error'}
+          </span>
+          <p className="font-hanken text-body-sm">{message}</p>
         </div>
       )}
 
       {/* Documents List */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-gray-900">Uploaded Documents</h2>
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-level-1 flex flex-col gap-stack-md">
+        <div className="flex items-center justify-between">
+          <h2 className="font-manrope text-headline-sm text-on-surface">Uploaded Documents</h2>
           <button
             onClick={() => setShowUploadForm(!showUploadForm)}
-            className="btn-primary text-sm flex items-center gap-1"
+            className="btn-primary !py-2 !px-4 flex items-center gap-1.5"
           >
-            <Upload size={16} /> Upload New
+            <span className="material-symbols-outlined text-[18px]">upload</span>
+            Upload New
           </button>
         </div>
 
         {documents.length === 0 ? (
           <div className="text-center py-8">
-            <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-600">No documents uploaded yet.</p>
-            <p className="text-sm text-gray-500">Upload at least one ID proof to get started.</p>
+            <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">description</span>
+            <h3 className="font-manrope text-headline-sm text-on-surface mb-2">No documents uploaded</h3>
+            <p className="font-hanken text-body-sm text-on-surface-variant">
+              Upload at least one ID proof to get started.
+            </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {documents.map((doc) => (
-              <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div
+                key={doc.id}
+                className="flex items-center justify-between p-4 rounded-lg border border-outline-variant bg-surface-container-low"
+              >
                 <div className="flex items-center gap-3">
-                  {statusIcon(doc.status)}
+                  <span className={`material-symbols-outlined text-[20px] ${getStatusColor(doc.status)}`}>
+                    {getStatusIcon(doc.status)}
+                  </span>
                   <div>
-                    <p className="font-medium text-gray-900 text-sm">{doc.document_name}</p>
-                    <p className="text-xs text-gray-500">
-                      {DOCUMENT_TYPES[doc.document_type] || doc.document_type} • Uploaded {doc.created_at?.split('T')[0]}
+                    <p className="font-hanken text-body-md text-on-surface">{doc.document_name}</p>
+                    <p className="font-hanken text-body-sm text-on-surface-variant">
+                      {DOCUMENT_TYPES[doc.document_type] || doc.document_type}
+                      {doc.created_at && ` · Uploaded ${doc.created_at.split('T')[0]}`}
                     </p>
                   </div>
                 </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                  doc.status === 'approved' ? 'bg-green-100 text-green-700' :
-                  doc.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                  'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {doc.status}
-                </span>
+                <StatusBadge status={doc.status} />
               </div>
             ))}
           </div>
@@ -165,11 +231,14 @@ export default function WorkerVerification() {
 
       {/* Upload Form */}
       {showUploadForm && (
-        <form onSubmit={handleUpload} className="card space-y-4 border-2 border-primary-200">
-          <h3 className="font-semibold text-gray-900">Upload New Document</h3>
+        <form
+          onSubmit={handleUpload}
+          className="bg-surface-container-lowest rounded-xl border-2 border-secondary p-6 shadow-level-1 flex flex-col gap-stack-md"
+        >
+          <h3 className="font-manrope text-headline-sm text-on-surface">Upload New Document</h3>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Document Type</label>
+          <div className="flex flex-col gap-stack-xs">
+            <label className="font-hanken text-label-md text-on-surface">Document Type</label>
             <select
               value={uploadForm.document_type}
               onChange={(e) => setUploadForm({ ...uploadForm, document_type: e.target.value })}
@@ -181,8 +250,8 @@ export default function WorkerVerification() {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Document Name</label>
+          <div className="flex flex-col gap-stack-xs">
+            <label className="font-hanken text-label-md text-on-surface">Document Name</label>
             <input
               type="text"
               value={uploadForm.document_name}
@@ -193,33 +262,74 @@ export default function WorkerVerification() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">File (PDF, JPG, PNG)</label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              accept=".pdf,.jpg,.jpeg,.png"
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-              required
-            />
+          <div className="flex flex-col gap-stack-xs">
+            <label className="font-hanken text-label-md text-on-surface">File (PDF, JPG, PNG)</label>
+            <div className="border-2 border-dashed border-outline-variant rounded-lg p-6 text-center hover:border-secondary transition-colors">
+              <input
+                type="file"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                className="block w-full font-hanken text-body-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-hanken file:text-label-sm file:bg-primary-container file:text-on-primary hover:file:opacity-80 file:cursor-pointer"
+                required
+              />
+              {!uploadForm.file && (
+                <p className="font-hanken text-body-sm text-on-surface-variant mt-2">
+                  <span className="material-symbols-outlined text-[20px] align-middle mr-1">cloud_upload</span>
+                  Select a file to upload
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 mt-2">
             <button type="button" onClick={() => setShowUploadForm(false)} className="btn-secondary flex-1">
               Cancel
             </button>
             <button type="submit" disabled={uploading} className="btn-primary flex-1 flex items-center justify-center gap-2">
               {uploading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  Uploading...
+                </>
               ) : (
                 <>
-                  <Upload size={16} /> Upload Document
+                  <span className="material-symbols-outlined text-[18px]">upload</span>
+                  Upload Document
                 </>
               )}
             </button>
           </div>
         </form>
       )}
+
+      {/* Document Types Info */}
+      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-level-1">
+        <h3 className="font-manrope text-label-md text-on-surface mb-4">Required Documents</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Object.entries(DOCUMENT_TYPES).map(([key, label]) => {
+            const uploaded = documents.find((d) => d.document_type === key);
+            return (
+              <div key={key} className="flex items-center gap-3 p-3 rounded-lg border border-outline-variant">
+                <span className={`material-symbols-outlined text-[20px] ${
+                  uploaded?.status === 'approved' ? 'text-success' :
+                  uploaded ? 'text-warning' : 'text-on-surface-variant'
+                }`}>
+                  {uploaded?.status === 'approved' ? 'check_circle' :
+                   uploaded ? 'pending' : 'radio_button_unchecked'}
+                </span>
+                <div>
+                  <p className="font-hanken text-body-sm text-on-surface">{label}</p>
+                  <p className="font-hanken text-label-sm text-on-surface-variant">
+                    {uploaded?.status === 'approved' ? 'Verified' :
+                     uploaded?.status === 'pending' ? 'Under review' :
+                     uploaded?.status === 'rejected' ? 'Rejected' : 'Not uploaded'}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

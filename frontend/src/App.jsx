@@ -1,8 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
 import Loading from './components/Loading';
+
+// Landing
+import Landing from './pages/Landing';
 
 // Auth pages
 import Login from './pages/auth/Login';
@@ -36,9 +40,8 @@ export default function App() {
     return <Loading message="Initializing Connect360..." />;
   }
 
-  // Default redirect based on role
   const getHomeRoute = () => {
-    if (!isAuthenticated) return '/login';
+    if (!isAuthenticated) return '/';
     const routes = {
       customer: '/customer/dashboard',
       worker: '/worker/dashboard',
@@ -48,96 +51,43 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="min-h-screen">
         <Routes>
+          {/* Landing */}
+          <Route path="/" element={isAuthenticated ? <Navigate to={getHomeRoute()} replace /> : <Landing />} />
+
           {/* Public routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to={getHomeRoute()} replace /> : <Login />} />
+          <Route path="/register" element={isAuthenticated ? <Navigate to={getHomeRoute()} replace /> : <Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Customer routes */}
-          <Route path="/customer/dashboard" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/customer/workers" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <BrowseWorkers />
-            </ProtectedRoute>
-          } />
-          <Route path="/customer/workers/:id" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <WorkerDetail />
-            </ProtectedRoute>
-          } />
-          <Route path="/customer/book/:workerId" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <BookingForm />
-            </ProtectedRoute>
-          } />
-          <Route path="/customer/bookings" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <MyBookings />
-            </ProtectedRoute>
-          } />
-          <Route path="/customer/profile" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerProfile />
-            </ProtectedRoute>
-          } />
+          <Route path="/customer/dashboard" element={<ProtectedRoute allowedRoles={['customer']}><CustomerDashboard /></ProtectedRoute>} />
+          <Route path="/customer/workers" element={<ProtectedRoute allowedRoles={['customer']}><BrowseWorkers /></ProtectedRoute>} />
+          <Route path="/customer/workers/:id" element={<ProtectedRoute allowedRoles={['customer']}><WorkerDetail /></ProtectedRoute>} />
+          <Route path="/customer/book/:workerId" element={<ProtectedRoute allowedRoles={['customer']}><BookingForm /></ProtectedRoute>} />
+          <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><MyBookings /></ProtectedRoute>} />
+          <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
 
           {/* Worker routes */}
-          <Route path="/worker/dashboard" element={
-            <ProtectedRoute allowedRoles={['worker']}>
-              <WorkerDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/worker/profile" element={
-            <ProtectedRoute allowedRoles={['worker']}>
-              <WorkerProfile />
-            </ProtectedRoute>
-          } />
-          <Route path="/worker/availability" element={
-            <ProtectedRoute allowedRoles={['worker']}>
-              <WorkerAvailability />
-            </ProtectedRoute>
-          } />
-          <Route path="/worker/bookings" element={
-            <ProtectedRoute allowedRoles={['worker']}>
-              <WorkerBookings />
-            </ProtectedRoute>
-          } />
-          <Route path="/worker/verification" element={
-            <ProtectedRoute allowedRoles={['worker']}>
-              <WorkerVerification />
-            </ProtectedRoute>
-          } />
+          <Route path="/worker/dashboard" element={<ProtectedRoute allowedRoles={['worker']}><WorkerDashboard /></ProtectedRoute>} />
+          <Route path="/worker/profile" element={<ProtectedRoute allowedRoles={['worker']}><WorkerProfile /></ProtectedRoute>} />
+          <Route path="/worker/availability" element={<ProtectedRoute allowedRoles={['worker']}><WorkerAvailability /></ProtectedRoute>} />
+          <Route path="/worker/bookings" element={<ProtectedRoute allowedRoles={['worker']}><WorkerBookings /></ProtectedRoute>} />
+          <Route path="/worker/verification" element={<ProtectedRoute allowedRoles={['worker']}><WorkerVerification /></ProtectedRoute>} />
 
           {/* Admin routes */}
-          <Route path="/admin/dashboard" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/services" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <ManageServices />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/verifications" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <VerificationReview />
-            </ProtectedRoute>
-          } />
+          <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/services" element={<ProtectedRoute allowedRoles={['admin']}><ManageServices /></ProtectedRoute>} />
+          <Route path="/admin/verifications" element={<ProtectedRoute allowedRoles={['admin']}><VerificationReview /></ProtectedRoute>} />
 
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to={getHomeRoute()} replace />} />
+          {/* Fallback */}
           <Route path="*" element={<Navigate to={getHomeRoute()} replace />} />
         </Routes>
       </main>
+      <BottomNav />
     </div>
   );
 }

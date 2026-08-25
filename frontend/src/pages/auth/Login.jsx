@@ -1,126 +1,115 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const result = await login(email, password);
-      if (result.isSignedIn) {
-        navigate('/');
-      } else if (result.nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
-        navigate('/verify-email', { state: { email } });
-      }
+      const role = result?.role || 'customer';
+      navigate(`/${role}/dashboard`);
     } catch (err) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      setError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <div className="card">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LogIn className="w-8 h-8 text-primary-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-            <p className="text-gray-600 mt-1">Sign in to your Connect360 account</p>
+    <div className="min-h-screen bg-background flex items-center justify-center px-margin-mobile py-stack-xl">
+      <div className="w-full max-w-sm flex flex-col gap-stack-lg">
+        {/* Header */}
+        <div className="text-center flex flex-col items-center gap-stack-sm">
+          <div className="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center">
+            <span className="material-symbols-outlined text-on-primary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              hub
+            </span>
           </div>
-
-          {/* Error */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input-field"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pr-10"
-                  placeholder="Enter your password"
-                  required
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                <>
-                  <LogIn size={18} />
-                  Sign In
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link to="/register" className="text-primary-600 font-medium hover:text-primary-700">
-                Register here
-              </Link>
-            </p>
-          </div>
+          <h1 className="font-manrope text-headline-lg-mobile text-primary">Welcome back</h1>
+          <p className="font-hanken text-body-md text-on-surface-variant">
+            Sign in to your Connect360 account
+          </p>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-error-container border border-error/20 rounded-lg p-4 flex items-start gap-3">
+            <span className="material-symbols-outlined text-error text-[20px] mt-0.5">error</span>
+            <p className="font-hanken text-body-sm text-on-error-container">{error}</p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
+          <div className="flex flex-col gap-stack-xs">
+            <label className="font-hanken text-label-md text-on-surface">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="input-field"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-stack-xs">
+            <label className="font-hanken text-label-md text-on-surface">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="input-field pr-12"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+              >
+                <span className="material-symbols-outlined text-[20px]">
+                  {showPassword ? 'visibility_off' : 'visibility'}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full mt-stack-sm"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                Signing in...
+              </span>
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <p className="font-hanken text-body-sm text-on-surface-variant text-center">
+          Don't have an account?{' '}
+          <Link to="/register" className="text-secondary font-medium hover:underline">
+            Create one
+          </Link>
+        </p>
       </div>
     </div>
   );
