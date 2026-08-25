@@ -1,114 +1,90 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { MailCheck } from 'lucide-react';
 
 export default function VerifyEmail() {
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const { confirmEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email || '';
+  const [code, setCode] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       await confirmEmail(email, code);
-      setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
+      navigate('/login', { state: { verified: true } });
     } catch (err) {
       setError(err.message || 'Invalid verification code');
     } finally {
       setLoading(false);
     }
-  };
-
-  if (!email) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center">
-        <div className="card text-center max-w-md">
-          <p className="text-gray-600">No email provided.</p>
-          <Link to="/register" className="text-primary-600 font-medium mt-2 inline-block">
-            Go to Register
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <div className="card">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MailCheck className="w-8 h-8 text-green-600" />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">Verify Your Email</h1>
-            <p className="text-gray-600 mt-1">
-              We sent a verification code to<br />
-              <span className="font-medium text-gray-900">{email}</span>
-            </p>
+    <div className="min-h-screen bg-background flex items-center justify-center px-margin-mobile py-stack-xl">
+      <div className="w-full max-w-sm flex flex-col gap-stack-lg">
+        {/* Header */}
+        <div className="text-center flex flex-col items-center gap-stack-sm">
+          <div className="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center">
+            <span className="material-symbols-outlined text-secondary text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+              mark_email_read
+            </span>
           </div>
-
-          {/* Success */}
-          {success && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
-              Email verified successfully! Redirecting to login...
-            </div>
-          )}
-
-          {/* Error */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Form */}
-          {!success && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-                  Verification Code
-                </label>
-                <input
-                  id="code"
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="input-field text-center text-2xl tracking-widest"
-                  placeholder="000000"
-                  maxLength={6}
-                  required
-                  autoFocus
-                />
-                <p className="text-xs text-gray-500 mt-1">Enter the 6-digit code from your email</p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading || code.length !== 6}
-                className="btn-primary w-full"
-              >
-                {loading ? 'Verifying...' : 'Verify Email'}
-              </button>
-            </form>
-          )}
-
-          <div className="mt-6 text-center">
-            <Link to="/login" className="text-sm text-primary-600 hover:text-primary-700">
-              Back to Login
-            </Link>
-          </div>
+          <h1 className="font-manrope text-headline-lg-mobile text-primary">Verify your email</h1>
+          <p className="font-hanken text-body-md text-on-surface-variant">
+            We sent a verification code to
+            {email && <span className="font-medium text-on-surface block mt-1">{email}</span>}
+          </p>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-error-container border border-error/20 rounded-lg p-4 flex items-start gap-3">
+            <span className="material-symbols-outlined text-error text-[20px] mt-0.5">error</span>
+            <p className="font-hanken text-body-sm text-on-error-container">{error}</p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
+          <div className="flex flex-col gap-stack-xs">
+            <label className="font-hanken text-label-md text-on-surface">Verification Code</label>
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="Enter 6-digit code"
+              className="input-field text-center text-headline-sm tracking-[0.3em]"
+              maxLength={6}
+              required
+            />
+          </div>
+
+          <button type="submit" disabled={loading} className="btn-primary w-full">
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                Verifying...
+              </span>
+            ) : (
+              'Verify Email'
+            )}
+          </button>
+        </form>
+
+        <p className="font-hanken text-body-sm text-on-surface-variant text-center">
+          Didn't receive the code?{' '}
+          <button className="text-secondary font-medium hover:underline">Resend</button>
+        </p>
+
+        <Link to="/login" className="font-hanken text-body-sm text-on-surface-variant text-center hover:text-secondary">
+          ← Back to login
+        </Link>
       </div>
     </div>
   );
