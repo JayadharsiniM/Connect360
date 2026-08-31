@@ -20,8 +20,17 @@ infra/lambda_packages/
 infra/.terraform/
 infra/*.tfstate
 infra/*.tfstate.backup
-infra/.terraform.lock.hcl
+infra/*.tfstate.premigration*
 infra/crash.log
+
+# Terraform variable files (may contain secrets like tokens)
+infra/*.tfvars
+infra/*.tfvars.json
+
+# Terraform plan files (contain full resource attributes / sensitive values)
+infra/tfplan
+infra/tfplan-*
+infra/*.tfplan
 
 # OS files
 .DS_Store
