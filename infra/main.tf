@@ -16,6 +16,16 @@ terraform {
       version = "~> 3.5"
     }
   }
+
+  # Remote state stored in S3 (ap-south-1)
+  # Native S3 state locking via use_lockfile (Terraform >= 1.10)
+  backend "s3" {
+    bucket       = "connect360-tfstate-022598396983"
+    key          = "connect360/dev/terraform.tfstate"
+    region       = "ap-south-1"
+    encrypt      = true
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
