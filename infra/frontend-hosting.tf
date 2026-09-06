@@ -1,8 +1,7 @@
 # =============================================================================
-# Connect360 - Frontend Hosting (S3 Static Website)
-# Direct S3 static website hosting (HTTP only)
-# Cost: $0/month (S3 free tier: 5 GB storage + 20K GET requests for 12 months)
-# Can switch to CloudFront later once account is verified for HTTPS + CDN
+# Connect360 - Frontend Hosting (S3 + CloudFront HTTPS)
+# S3 static website origin + CloudFront distribution for HTTPS + global CDN.
+# Cost: $0/month (S3 free tier + CloudFront always-free: 1TB + 10M req/month)
 # =============================================================================
 
 # S3 Bucket for frontend static files
@@ -12,7 +11,7 @@ resource "aws_s3_bucket" "frontend" {
   tags = { Name = "${var.project_name}-frontend" }
 }
 
-# Enable static website hosting
+# Enable static website hosting (used as the CloudFront origin)
 resource "aws_s3_bucket_website_configuration" "frontend" {
   bucket = aws_s3_bucket.frontend.id
 
@@ -55,14 +54,91 @@ resource "aws_s3_bucket_policy" "frontend" {
 }
 
 # =============================================================================
+# CloudFront Distribution (HTTPS + CDN in front of the S3 website)
+# =============================================================================
+resource "aws_cloudfront_distribution" "frontend" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "Connect360 frontend"
+  default_root_object = "index.html"
+  price_class         = "PriceClass_100" # cheapest: NA + EU edge locations
+
+  origin {
+    # Use the S3 *website* endpoint as a custom origin (supports SPA routing).
+    domain_name = aws_s3_bucket_website_configuration.frontend.website_endpoint
+    origin_id   = "s3-website-frontend"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only" # S3 website endpoints are HTTP-only
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-website-frontend"
+    viewer_protocol_policy = "redirect-to-https" # force HTTPS
+
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+
+    min_ttl     = 0
+    default_ttl = 3600
+    max_ttl     = 86400
+    compress    = true
+  }
+
+  # SPA routing: serve index.html for 403/404 so client-side routes work
+  custom_error_response {
+    error_code         = 403
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+  custom_error_response {
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true # free *.cloudfront.net HTTPS cert
+  }
+
+  tags = { Name = "${var.project_name}-frontend-cdn" }
+}
+
+# =============================================================================
 # Outputs
 # =============================================================================
-output "frontend_url" {
-  description = "S3 website URL for the frontend"
+output "frontend_url_http" {
+  description = "S3 website URL (HTTP)"
   value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
+}
+
+output "frontend_url" {
+  description = "CloudFront HTTPS URL for the frontend"
+  value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
 }
 
 output "frontend_s3_bucket" {
   description = "S3 bucket for frontend files"
   value       = aws_s3_bucket.frontend.id
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID (for cache invalidation on redeploy)"
+  value       = aws_cloudfront_distribution.frontend.id
 }

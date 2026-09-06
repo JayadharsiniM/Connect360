@@ -14,6 +14,7 @@ from db import (put_item, get_item, update_item, query_items, query_all,
                 generate_id, now_iso, decimal_to_float)
 from response import success, created, error, not_found, forbidden, server_error
 from auth_helpers import get_user_claims, get_user_sub, get_user_role, get_path_param, get_query_param, get_body
+import calling_provider
 
 
 def lambda_handler(event, context):
@@ -41,6 +42,8 @@ def lambda_handler(event, context):
             return create_review(event)
         elif method == 'GET' and '/workers/{id}/reviews' in resource:
             return get_worker_reviews(event)
+        elif method == 'POST' and '/bookings/{id}/call' in resource:
+            return initiate_call(event)
         else:
             return error('Route not found', status_code=404)
     except Exception as e:
@@ -370,3 +373,94 @@ def get_worker_reviews(event):
         'average_rating': avg,
         'total_reviews': count,
     })
+
+
+# =============================================================================
+# In-App Calling with Number Privacy (Feature 1)
+# =============================================================================
+
+# Booking statuses during which calling is permitted
+_CALLABLE_STATUSES = ('accepted', 'in_progress')
+
+
+def initiate_call(event):
+    """
+    POST /api/bookings/{id}/call
+
+    Bridges a masked call between the customer and the assigned worker for an
+    active booking. Neither party's real phone number is returned to the client.
+
+    Authorization:
+      - Caller must be the customer OR the assigned worker of THIS booking.
+      - Booking status must be 'accepted' or 'in_progress'.
+    """
+    role = get_user_role(event)
+    if role not in ('customer', 'worker'):
+        return forbidden('Only customers or workers can initiate calls')
+
+    caller_user_id = _get_user_id_from_sub(get_user_sub(event))
+    if not caller_user_id:
+        return error('User not found')
+
+    booking_id = get_path_param(event, 'id')
+    if not booking_id:
+        return error('Booking ID is required')
+
+    booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
+    if not booking:
+        return not_found('Booking not found')
+
+    customer_id = booking.get('customer_id')
+    worker_id = booking.get('worker_id')
+
+    # Ownership / assignment check — caller must belong to this booking
+    if caller_user_id not in (customer_id, worker_id):
+        return forbidden('You are not part of this booking')
+
+    # Status gate — calling only while the booking is active
+    if booking.get('status') not in _CALLABLE_STATUSES:
+        return error('Calling is only available for active bookings', status_code=409)
+
+    # Determine caller vs callee and fetch numbers SERVER-SIDE ONLY.
+    # These numbers are never placed in any response, log, or error.
+    if caller_user_id == customer_id:
+        caller_profile = get_item(f'USER#{customer_id}', 'PROFILE')
+        callee_profile = get_item(f'USER#{worker_id}', 'PROFILE')
+        callee_role = 'worker'
+    else:
+        caller_profile = get_item(f'USER#{worker_id}', 'PROFILE')
+        callee_profile = get_item(f'USER#{customer_id}', 'PROFILE')
+        callee_role = 'customer'
+
+    caller_number = (caller_profile or {}).get('phone', '')
+    callee_number = (callee_profile or {}).get('phone', '')
+
+    if not caller_number:
+        return error('Add your phone number in your profile to make calls', status_code=422)
+    if not callee_number:
+        return error(f'The {callee_role} has not added a phone number yet', status_code=422)
+
+    # Delegate to the isolated provider adapter. It returns NO phone numbers.
+    result = calling_provider.initiate_masked_call(
+        caller_number=caller_number,
+        callee_number=callee_number,
+        booking_id=booking_id,
+    )
+
+    status = result.get('status')
+
+    if status == calling_provider.STATUS_INITIATED:
+        return success({
+            'call_status': 'calling',
+            'masked': True,
+            'message': f'Connecting your call to the {callee_role}. Please answer your phone.',
+        })
+
+    if status == calling_provider.STATUS_NOT_CONFIGURED:
+        return error('Calling is not available right now', status_code=503)
+
+    if status == calling_provider.STATUS_INVALID_NUMBERS:
+        return error('Calling could not be completed. Please check phone numbers.', status_code=422)
+
+    # STATUS_PROVIDER_ERROR or anything unexpected — safe generic message
+    return error('Unable to connect the call. Please try again later.', status_code=502)

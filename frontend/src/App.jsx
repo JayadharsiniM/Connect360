@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
 import ProtectedRoute from './components/ProtectedRoute';
 import Loading from './components/Loading';
+import AIAssistant from './components/AIAssistant';
 
 // Landing
 import Landing from './pages/Landing';
@@ -32,6 +33,9 @@ import WorkerVerification from './pages/worker/Verification';
 import AdminDashboard from './pages/admin/Dashboard';
 import ManageServices from './pages/admin/ManageServices';
 import VerificationReview from './pages/admin/VerificationReview';
+import RevenueOverview from './pages/admin/RevenueOverview';
+import UserManagement from './pages/admin/UserManagement';
+import VerificationQueue from './pages/admin/VerificationQueue';
 
 export default function App() {
   const { loading, isAuthenticated, user } = useAuth();
@@ -80,7 +84,10 @@ export default function App() {
 
           {/* Admin routes */}
           <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueOverview /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/services" element={<ProtectedRoute allowedRoles={['admin']}><ManageServices /></ProtectedRoute>} />
+          <Route path="/admin/verification-queue" element={<ProtectedRoute allowedRoles={['admin']}><VerificationQueue /></ProtectedRoute>} />
           <Route path="/admin/verifications" element={<ProtectedRoute allowedRoles={['admin']}><VerificationReview /></ProtectedRoute>} />
 
           {/* Fallback */}
@@ -88,6 +95,7 @@ export default function App() {
         </Routes>
       </main>
       <BottomNav />
+      <AIAssistant />
     </div>
   );
 }

@@ -42,7 +42,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="fixed top-0 w-full z-50 h-16 bg-surface-container-lowest border-b border-outline-variant shadow-level-1 flex justify-between items-center px-margin-mobile md:px-margin-desktop">
+      <header className="lg:hidden fixed top-0 w-full z-50 h-16 bg-surface-container-lowest border-b border-outline-variant shadow-level-1 flex justify-between items-center px-margin-mobile md:px-margin-desktop">
         <Link to={isAuthenticated ? `/${user?.role}/dashboard` : '/'} className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>

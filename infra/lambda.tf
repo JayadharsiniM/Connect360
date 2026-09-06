@@ -1,6 +1,6 @@
 # =============================================================================
 # Connect360 - Lambda Function Definitions
-# 6 Lambdas with route-based multiplexing, NO VPC, using DynamoDB
+# 7 Lambdas with route-based multiplexing, NO VPC, using DynamoDB
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -15,6 +15,7 @@ resource "aws_cloudwatch_log_group" "lambda_logs" {
     "${var.project_name}-bookings-${var.environment}",
     "${var.project_name}-verification-${var.environment}",
     "${var.project_name}-admin-${var.environment}",
+    "${var.project_name}-assistant-${var.environment}",
   ])
 
   name              = "/aws/lambda/${each.value}"
@@ -37,6 +38,25 @@ locals {
 
   lambda_env_vars = merge(local.lambda_env_vars_base, {
     COGNITO_USER_POOL = aws_cognito_user_pool.main.id
+  })
+
+  # Bookings Lambda additionally gets Twilio calling config (Feature 1).
+  # Empty by default -> calling endpoint safely reports "unavailable".
+  bookings_env_vars = merge(local.lambda_env_vars, {
+    TWILIO_ACCOUNT_SID = var.twilio_account_sid
+    TWILIO_AUTH_TOKEN  = var.twilio_auth_token
+    TWILIO_FROM_NUMBER = var.twilio_from_number
+    TWILIO_TWIML_URL   = var.twilio_twiml_url
+    TWILIO_API_BASE    = var.twilio_api_base
+  })
+
+  # Assistant Lambda additionally gets Bedrock AI config (Feature 2).
+  # AI_ENABLED=false by default -> assistant uses rule-based fallback (Rs.0).
+  assistant_env_vars = merge(local.lambda_env_vars, {
+    AI_ENABLED           = var.ai_enabled
+    BEDROCK_MODEL_ID     = var.bedrock_model_id
+    BEDROCK_REGION       = var.bedrock_region
+    AI_MAX_OUTPUT_TOKENS = var.ai_max_output_tokens
   })
 }
 
@@ -118,7 +138,7 @@ resource "aws_lambda_function" "bookings" {
   source_code_hash = filebase64sha256("${path.module}/lambda_packages/bookings.zip")
 
   environment {
-    variables = local.lambda_env_vars
+    variables = local.bookings_env_vars
   }
 
   tags = { Name = "${var.project_name}-bookings", Domain = "bookings" }
@@ -164,6 +184,27 @@ resource "aws_lambda_function" "admin" {
   }
 
   tags = { Name = "${var.project_name}-admin", Domain = "admin" }
+}
+
+# -----------------------------------------------------------------------------
+# Lambda 7: connect360-assistant (AI Assistant - Feature 2)
+# -----------------------------------------------------------------------------
+resource "aws_lambda_function" "assistant" {
+  function_name = "${var.project_name}-assistant-${var.environment}"
+  role          = aws_iam_role.lambda_exec.arn
+  handler       = "handler.lambda_handler"
+  runtime       = var.lambda_runtime
+  timeout       = var.lambda_timeout
+  memory_size   = var.lambda_memory
+
+  filename         = "${path.module}/lambda_packages/assistant.zip"
+  source_code_hash = filebase64sha256("${path.module}/lambda_packages/assistant.zip")
+
+  environment {
+    variables = local.assistant_env_vars
+  }
+
+  tags = { Name = "${var.project_name}-assistant", Domain = "assistant" }
 }
 
 # -----------------------------------------------------------------------------
@@ -213,6 +254,14 @@ resource "aws_lambda_permission" "api_gw_admin" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.admin.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "api_gw_assistant" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.assistant.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*"
 }

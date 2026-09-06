@@ -81,6 +81,29 @@ resource "aws_iam_role_policy" "lambda_s3" {
   })
 }
 
+# Bedrock invoke permission for the AI Assistant (Feature 2).
+# Only created when AI is enabled (least privilege) — count=0 keeps it off by default.
+resource "aws_iam_role_policy" "lambda_bedrock" {
+  count = var.ai_enabled == "true" ? 1 : 0
+
+  name = "${var.project_name}-bedrock-access"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "bedrock:InvokeModel"
+        ]
+        # Scope to foundation models in the Bedrock region; model id is applied at call time.
+        Resource = "arn:aws:bedrock:${var.bedrock_region}::foundation-model/*"
+      }
+    ]
+  })
+}
+
 # Cognito admin actions (for post-confirmation trigger)
 resource "aws_iam_role_policy" "lambda_cognito" {
   name = "${var.project_name}-cognito-access"
@@ -93,7 +116,10 @@ resource "aws_iam_role_policy" "lambda_cognito" {
         Effect = "Allow"
         Action = [
           "cognito-idp:AdminGetUser",
-          "cognito-idp:AdminUpdateUserAttributes"
+          "cognito-idp:AdminUpdateUserAttributes",
+          "cognito-idp:AdminDisableUser",
+          "cognito-idp:AdminEnableUser",
+          "cognito-idp:ListUsers"
         ]
         Resource = aws_cognito_user_pool.main.arn
       }
