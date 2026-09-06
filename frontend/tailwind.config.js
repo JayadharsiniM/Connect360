@@ -54,6 +54,7 @@ export default {
         background: '#f8f9ff',
         'on-background': '#0b1c30',
         'surface-variant': '#d3e4fe',
+        'outline-slate': '#e2e8f0',
         // Functional colors
         success: '#16a34a',
         'success-container': '#dcfce7',

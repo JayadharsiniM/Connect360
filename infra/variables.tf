@@ -59,3 +59,73 @@ variable "github_access_token" {
   default     = ""
   sensitive   = true
 }
+
+# =============================================================================
+# Calling Provider (Twilio Voice) - Number Privacy / Masked Calling (Feature 1)
+# Works with a Twilio free trial for testing (no purchase required).
+# Leave empty to keep calling disabled (endpoint returns "unavailable").
+# Populate via a local, gitignored terraform.tfvars or a secure secret store.
+# NEVER commit real values.
+# =============================================================================
+variable "twilio_account_sid" {
+  description = "Twilio Account SID (leave empty to disable calling)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_auth_token" {
+  description = "Twilio Auth Token (leave empty to disable calling)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_from_number" {
+  description = "Twilio phone number (E.164) used as the masked caller ID"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_twiml_url" {
+  description = "TwiML URL (e.g. a Twilio TwiML Bin) that <Dial>s the callee for the second leg"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "twilio_api_base" {
+  description = "Twilio API base URL"
+  type        = string
+  default     = "https://api.twilio.com"
+}
+
+# =============================================================================
+# AI Assistant (Amazon Bedrock) - Feature 2
+# AI_ENABLED=false by default -> assistant uses rule-based fallback (Rs.0).
+# Set ai_enabled="true" + a model id + region to enable Bedrock (uses credits).
+# =============================================================================
+variable "ai_enabled" {
+  description = "Enable Bedrock-powered AI assistant (\"true\"/\"false\"). Off = rule-based fallback, Rs.0."
+  type        = string
+  default     = "false"
+}
+
+variable "bedrock_model_id" {
+  description = "Bedrock model id (e.g. amazon.nova-micro-v1:0). Empty keeps AI disabled."
+  type        = string
+  default     = ""
+}
+
+variable "bedrock_region" {
+  description = "AWS region for Bedrock (e.g. us-east-1). Bedrock may not be in ap-south-1 for all models."
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "ai_max_output_tokens" {
+  description = "Max output tokens per assistant response (cost cap)."
+  type        = string
+  default     = "400"
+}

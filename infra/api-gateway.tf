@@ -341,6 +341,13 @@ resource "aws_api_gateway_resource" "bookings_id_cancel" {
   path_part   = "cancel"
 }
 
+# /api/bookings/{id}/call  (masked in-app calling — Feature 1)
+resource "aws_api_gateway_resource" "bookings_id_call" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.bookings_id.id
+  path_part   = "call"
+}
+
 resource "aws_api_gateway_resource" "worker_bookings" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.worker.id
@@ -444,6 +451,24 @@ resource "aws_api_gateway_integration" "bookings_id_cancel_put" {
   rest_api_id             = aws_api_gateway_rest_api.main.id
   resource_id             = aws_api_gateway_resource.bookings_id_cancel.id
   http_method             = aws_api_gateway_method.bookings_id_cancel_put.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# POST /api/bookings/{id}/call  (masked in-app calling — Feature 1)
+resource "aws_api_gateway_method" "bookings_id_call_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.bookings_id_call.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "bookings_id_call_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.bookings_id_call.id
+  http_method             = aws_api_gateway_method.bookings_id_call_post.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = aws_lambda_function.bookings.invoke_arn
@@ -709,6 +734,25 @@ resource "aws_api_gateway_resource" "admin_dashboard" {
   path_part   = "dashboard"
 }
 
+# Admin user management + revenue analytics resources
+resource "aws_api_gateway_resource" "admin_users" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.admin.id
+  path_part   = "users"
+}
+
+resource "aws_api_gateway_resource" "admin_users_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.admin_users.id
+  path_part   = "{id}"
+}
+
+resource "aws_api_gateway_resource" "admin_revenue" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.admin.id
+  path_part   = "revenue"
+}
+
 resource "aws_api_gateway_resource" "customer" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.api.id
@@ -719,6 +763,39 @@ resource "aws_api_gateway_resource" "customer_profile" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.customer.id
   path_part   = "profile"
+}
+
+# =============================================================================
+# ASSISTANT routes: /api/assistant/chat  (AI Assistant - Feature 2)
+# =============================================================================
+resource "aws_api_gateway_resource" "assistant" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "assistant"
+}
+
+resource "aws_api_gateway_resource" "assistant_chat" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.assistant.id
+  path_part   = "chat"
+}
+
+# POST /api/assistant/chat
+resource "aws_api_gateway_method" "assistant_chat_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.assistant_chat.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "assistant_chat_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.assistant_chat.id
+  http_method             = aws_api_gateway_method.assistant_chat_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.assistant.invoke_arn
 }
 
 # GET /api/admin/dashboard
@@ -734,6 +811,60 @@ resource "aws_api_gateway_integration" "admin_dashboard_get" {
   rest_api_id             = aws_api_gateway_rest_api.main.id
   resource_id             = aws_api_gateway_resource.admin_dashboard.id
   http_method             = aws_api_gateway_method.admin_dashboard_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.admin.invoke_arn
+}
+
+# GET /api/admin/users
+resource "aws_api_gateway_method" "admin_users_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.admin_users.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "admin_users_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.admin_users.id
+  http_method             = aws_api_gateway_method.admin_users_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.admin.invoke_arn
+}
+
+# PATCH /api/admin/users/{id}
+resource "aws_api_gateway_method" "admin_users_id_patch" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.admin_users_id.id
+  http_method   = "PATCH"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "admin_users_id_patch" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.admin_users_id.id
+  http_method             = aws_api_gateway_method.admin_users_id_patch.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.admin.invoke_arn
+}
+
+# GET /api/admin/revenue
+resource "aws_api_gateway_method" "admin_revenue_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.admin_revenue.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "admin_revenue_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.admin_revenue.id
+  http_method             = aws_api_gateway_method.admin_revenue_get.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = aws_lambda_function.admin.invoke_arn
@@ -792,6 +923,7 @@ locals {
     bookings                     = aws_api_gateway_resource.bookings.id
     bookings_id                  = aws_api_gateway_resource.bookings_id.id
     bookings_id_cancel           = aws_api_gateway_resource.bookings_id_cancel.id
+    bookings_id_call             = aws_api_gateway_resource.bookings_id_call.id
     worker_bookings              = aws_api_gateway_resource.worker_bookings.id
     worker_bookings_id           = aws_api_gateway_resource.worker_bookings_id.id
     worker_bookings_id_respond   = aws_api_gateway_resource.worker_bookings_id_respond.id
@@ -803,7 +935,11 @@ locals {
     admin_verifications          = aws_api_gateway_resource.admin_verifications.id
     admin_verifications_id       = aws_api_gateway_resource.admin_verifications_id.id
     admin_dashboard              = aws_api_gateway_resource.admin_dashboard.id
+    admin_users                  = aws_api_gateway_resource.admin_users.id
+    admin_users_id               = aws_api_gateway_resource.admin_users_id.id
+    admin_revenue                = aws_api_gateway_resource.admin_revenue.id
     customer_profile             = aws_api_gateway_resource.customer_profile.id
+    assistant_chat               = aws_api_gateway_resource.assistant_chat.id
   }
 }
 
@@ -858,7 +994,7 @@ resource "aws_api_gateway_integration_response" "cors" {
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key'"
-    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
 }
@@ -894,6 +1030,7 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.bookings_get,
     aws_api_gateway_integration.bookings_id_get,
     aws_api_gateway_integration.bookings_id_cancel_put,
+    aws_api_gateway_integration.bookings_id_call_post,
     aws_api_gateway_integration.worker_bookings_get,
     aws_api_gateway_integration.worker_bookings_id_get,
     aws_api_gateway_integration.worker_bookings_id_respond_put,
@@ -907,8 +1044,12 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.admin_verifications_id_get,
     aws_api_gateway_integration.admin_verifications_id_put,
     aws_api_gateway_integration.admin_dashboard_get,
+    aws_api_gateway_integration.admin_users_get,
+    aws_api_gateway_integration.admin_users_id_patch,
+    aws_api_gateway_integration.admin_revenue_get,
     aws_api_gateway_integration.customer_profile_get,
     aws_api_gateway_integration.customer_profile_put,
+    aws_api_gateway_integration.assistant_chat_post,
     aws_api_gateway_integration.cors,
   ]
 }

@@ -21,15 +21,18 @@ function RealAuthProvider({ children }) {
       const { getCurrentUser, fetchUserAttributes } = await import('aws-amplify/auth');
       const currentUser = await getCurrentUser();
       const attributes = await fetchUserAttributes();
-      setUser({
+      const nextUser = {
         username: currentUser.username,
         userId: currentUser.userId,
         email: attributes.email,
         role: attributes['custom:role'] || 'customer',
         fullName: attributes['custom:full_name'] || '',
-      });
+      };
+      setUser(nextUser);
+      return nextUser;
     } catch (err) {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -38,10 +41,12 @@ function RealAuthProvider({ children }) {
   async function login(email, password) {
     const { signIn } = await import('aws-amplify/auth');
     const result = await signIn({ username: email, password });
+    let resolvedUser = null;
     if (result.isSignedIn) {
-      await checkAuthState();
+      resolvedUser = await checkAuthState();
     }
-    return result;
+    // Return the resolved user so callers can route by the real Cognito role.
+    return { ...result, user: resolvedUser };
   }
 
   async function register(email, password, fullName, role) {

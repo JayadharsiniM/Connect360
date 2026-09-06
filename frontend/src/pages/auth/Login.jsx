@@ -17,7 +17,10 @@ export default function Login() {
     setLoading(true);
     try {
       const result = await login(email, password);
-      const role = result?.role || 'customer';
+      // Amplify signIn returns { isSignedIn }, not the role. The role comes from
+      // the authenticated user's Cognito custom:role attribute (resolved in
+      // checkAuthState). Prefer that; fall back to any role on the result, then customer.
+      const role = result?.user?.role || result?.role || 'customer';
       navigate(`/${role}/dashboard`);
     } catch (err) {
       setError(err.message || 'Invalid email or password');

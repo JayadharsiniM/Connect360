@@ -18,4 +18,8 @@ export const bookingsService = isMock ? mockApi.bookings : {
 
   // Reviews
   createReview: (data) => api.post('/reviews', data),
+
+  // In-app masked calling (number privacy) — works for both customer & worker.
+  // The backend routes to the correct party; no phone number is ever returned.
+  initiateCall: (bookingId) => api.post(`/bookings/${bookingId}/call`),
 };

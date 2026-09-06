@@ -185,6 +185,22 @@ export const mockApi = {
       reviews.push({ id: `r-${Date.now()}`, ...data, customer_name: 'Priya Sharma', created_at: new Date().toISOString() });
       return resp({ message: 'Review submitted successfully' });
     },
+    initiateCall: async (bookingId) => {
+      await delay(500);
+      const b = bookings.find((bk) => (bk.id === bookingId || bk.booking_id === bookingId));
+      if (!b) {
+        const err = new Error('Booking not found');
+        err.response = { status: 404, data: { error: 'Booking not found' } };
+        throw err;
+      }
+      if (!['accepted', 'in_progress'].includes(b.status)) {
+        const err = new Error('Not active');
+        err.response = { status: 409, data: { error: 'Calling is only available for active bookings' } };
+        throw err;
+      }
+      // Mock mode simulates provider "not configured" so no numbers are involved
+      return resp({ call_status: 'calling', masked: true, message: 'Connecting your call. Please answer your phone.' });
+    },
   },
 
   // --- Verification ---
@@ -249,6 +265,80 @@ export const mockApi = {
     getDashboard: async () => {
       await delay();
       return resp(mockDashboardStats);
+    },
+    listUsers: async (params = {}) => {
+      await delay();
+      const all = [
+        { id: 'c-001', full_name: 'Priya Sharma', email: 'customer1@demo.com', role: 'customer', status: 'active', city: 'Chennai', created_at: '2026-08-01T00:00:00Z' },
+        { id: 'w-001', full_name: 'Suresh Kumar', email: 'worker1@demo.com', role: 'worker', status: 'active', city: 'Chennai', created_at: '2026-08-01T00:00:00Z' },
+        { id: 'admin-001', full_name: 'Platform Admin', email: 'admin@connect360.com', role: 'admin', status: 'active', city: 'Chennai', created_at: '2026-08-01T00:00:00Z' },
+      ];
+      let users = all;
+      if (params.role) users = users.filter((u) => u.role === params.role);
+      if (params.status) users = users.filter((u) => u.status === params.status);
+      if (params.q) {
+        const q = params.q.toLowerCase();
+        users = users.filter((u) => `${u.full_name} ${u.email}`.toLowerCase().includes(q));
+      }
+      return resp({
+        users,
+        counts: {
+          total: all.length,
+          customer: all.filter((u) => u.role === 'customer').length,
+          worker: all.filter((u) => u.role === 'worker').length,
+          admin: all.filter((u) => u.role === 'admin').length,
+          suspended: all.filter((u) => u.status === 'suspended').length,
+        },
+      });
+    },
+    updateUser: async (id, changes) => {
+      await delay();
+      return resp({ message: 'User updated (mock)', user: { id, ...changes } });
+    },
+    getRevenue: async () => {
+      await delay();
+      const total = mockDashboardStats?.stats?.revenue?.total_revenue || 1000;
+      return resp({
+        summary: { total_revenue: total, completed_bookings: 1, avg_ticket: total },
+        by_category: [{ name: 'Plumbing', amount: total, pct: 100 }],
+        trend: [{ month: '2026-08', amount: total }],
+        transactions: [],
+      });
+    },
+    listVerifications: async () => {
+      await delay();
+      return resp({ verifications: [] });
+    },
+    reviewVerification: async (id, payload) => {
+      await delay();
+      return resp({ message: 'Reviewed (mock)', id, ...payload });
+    },
+  },
+
+  // --- AI Assistant (role-aware, rule-based in mock mode) ---
+  assistant: {
+    chat: async ({ message, role = 'customer' }) => {
+      await delay(600);
+      const msg = (message || '').toLowerCase();
+      let answer;
+      if (['complaint', 'escalate', 'support', 'human', 'refund'].some((w) => msg.includes(w))) {
+        answer = 'I can help you escalate this. You can contact Connect360 support or raise a complaint from your bookings page.';
+      } else if (['status', 'when', 'arrive', 'coming', 'reschedule', 'cancel', 'book'].some((w) => msg.includes(w))) {
+        answer = 'Bookings move through: pending → accepted → in progress → completed. You can view the current status on your bookings page.';
+      } else if (msg.includes('ac') || msg.includes('cool')) {
+        answer = 'Here are some safe steps to try:\n- Set the thermostat to "cool" below room temperature.\n- Clean or replace the air filter.\n- Ensure the outdoor unit has airflow.\n- If it still doesn\'t cool, book an AC technician.';
+      } else if (msg.includes('washing') || msg.includes('drain')) {
+        answer = role === 'worker'
+          ? 'Preparation checklist:\n- Bring drain-cleaning tools, spare filter, and multimeter.\n- Check the model number in the booking notes.'
+          : 'Here are some safe steps to try:\n- Check the drain hose for kinks/blockage and clean the filter.\n- Confirm power, water supply, and that the door is latched.';
+      } else if (['service', 'services', 'offer', 'provide', 'price', 'cost'].some((w) => msg.includes(w))) {
+        answer = 'Connect360 offers plumbing, electrical, cleaning, AC/HVAC, painting, carpentry, and appliance repair. You can see each professional\'s hourly rate on their profile.';
+      } else if (role === 'worker') {
+        answer = 'I can help with your assigned jobs: understanding the requested service, preparation checklists, safe troubleshooting, and completion steps. What do you need?';
+      } else {
+        answer = 'I can help you troubleshoot a problem, choose the right service, understand your booking status, or prepare for your technician\'s visit. What would you like help with?';
+      }
+      return resp({ answer, role, source: 'fallback', has_booking_context: false });
     },
   },
 };
