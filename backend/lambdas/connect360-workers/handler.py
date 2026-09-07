@@ -326,6 +326,10 @@ def _build_worker_summary(user_id):
     if not user or not profile:
         return None
 
+    # Fetch service names so the frontend can filter/search by category
+    service_items = query_items(f'USER#{user_id}', sk_begins_with='SERVICE#')
+    service_names = [s.get('service_name', '') for s in service_items]
+
     return decimal_to_float({
         'id': user_id,
         'full_name': user.get('full_name'),
@@ -337,4 +341,5 @@ def _build_worker_summary(user_id):
         'rating_count': profile.get('rating_count', 0),
         'is_verified': profile.get('is_verified', False),
         'is_available': profile.get('is_available', True),
+        'service_names': service_names,  # for frontend search by category
     })

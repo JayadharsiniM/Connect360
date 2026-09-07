@@ -56,7 +56,14 @@ export default function BrowseWorkers() {
     if (maxPrice !== '' && rate > Number(maxPrice)) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return w.full_name?.toLowerCase().includes(q) || w.city?.toLowerCase().includes(q);
+      return (
+        w.full_name?.toLowerCase().includes(q) ||
+        w.city?.toLowerCase().includes(q) ||
+        w.bio?.toLowerCase().includes(q) ||
+        w.service_names?.some((s) => s.toLowerCase().includes(q)) ||
+        w.services?.some((s) => s.name?.toLowerCase().includes(q)) ||
+        w.skills?.some((sk) => sk.toLowerCase().includes(q))
+      );
     }
     return true;
   });
