@@ -14,7 +14,9 @@ export const bookingsService = isMock ? mockApi.bookings : {
   listWorkerBookings: (status) => api.get('/worker/bookings', { params: { status } }),
   getWorkerBooking: (id) => api.get(`/worker/bookings/${id}`),
   respond: (id, action) => api.put(`/worker/bookings/${id}/respond`, { action }),
+  respondToBooking: (id, action) => api.put(`/worker/bookings/${id}/respond`, { action }),  // alias
   updateStatus: (id, status) => api.put(`/worker/bookings/${id}/status`, { status }),
+  updateBookingStatus: (id, status) => api.put(`/worker/bookings/${id}/status`, { status }),  // alias
 
   // Reviews
   createReview: (data) => api.post('/reviews', data),
