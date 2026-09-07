@@ -171,8 +171,8 @@ export default function WorkerAvailability() {
       <div key={dayIndex} className={`bg-surface-container-lowest rounded-xl border p-5 shadow-level-1 transition-all ${isActive ? 'border-primary-container' : 'border-outline-variant'}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button type="button" onClick={() => toggleDayAvailability(dayIndex)} className={`w-12 h-6 rounded-full relative transition-colors ${isActive ? 'bg-primary' : 'bg-surface-container-highest'}`} aria-label={`Toggle ${day} availability`}>
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-6' : 'translate-x-0.5'}`} />
+            <button type="button" onClick={() => toggleDayAvailability(dayIndex)} className={`w-12 h-6 rounded-full relative transition-colors flex-shrink-0 ${isActive ? 'bg-primary' : 'bg-surface-container-highest'}`} aria-label={`Toggle ${day} availability`}>
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-[26px]' : 'translate-x-0.5'}`} />
             </button>
             <div>
               <h3 className="font-manrope text-label-md text-on-surface">{day}</h3>
