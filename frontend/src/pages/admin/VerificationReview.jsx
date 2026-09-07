@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminService } from '../../services/adminService';
+import { verificationService } from '../../services/verificationService';
 import StatusBadge from '../../components/StatusBadge';
 import DashboardLayout from '../../components/DashboardLayout';
 
@@ -31,13 +32,32 @@ export default function VerificationReview() {
       const res = await adminService.listVerifications(statusFilter);
       const list = res.data.verifications || [];
       setVerifications(list);
-      // Auto-select first item for the desktop detail pane
-      setSelectedDoc((prev) => (prev && list.some((d) => d.id === prev.id) ? prev : list[0] || null));
+      // Auto-select first item — fetch detail to get download_url
+      const first = list[0] || null;
+      if (first) {
+        selectDoc(first);
+      } else {
+        setSelectedDoc(null);
+      }
     } catch (err) {
       setError('Failed to load verifications.');
       console.error('Error loading verifications:', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function selectDoc(doc) {
+    // Set basic info immediately so the panel opens right away
+    setSelectedDoc(doc);
+    setNotes('');
+    // Then fetch the detail to get the pre-signed download_url
+    try {
+      const res = await verificationService.getDetail(doc.id);
+      setSelectedDoc(res.data.verification);
+    } catch (err) {
+      // Keep the basic doc if detail fetch fails — preview just won't show
+      console.error('Could not fetch document detail:', err);
     }
   }
 
@@ -121,7 +141,7 @@ export default function VerificationReview() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => { setSelectedDoc(doc); setNotes(''); }} className="btn-secondary !py-2 !px-4 flex items-center gap-1.5">
+                    <button onClick={() => { selectDoc(doc); setNotes(''); }} className="btn-secondary !py-2 !px-4 flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[16px]">visibility</span>
                       View
                     </button>
@@ -188,7 +208,7 @@ export default function VerificationReview() {
                   return (
                     <div
                       key={doc.id}
-                      onClick={() => { setSelectedDoc(doc); setNotes(''); }}
+                      onClick={() => { selectDoc(doc); setNotes(''); }}
                       className={`p-4 border-b border-outline-slate cursor-pointer hover:bg-surface-variant/20 transition-colors border-l-4 ${active ? 'bg-surface-container-low border-l-secondary' : 'border-l-transparent'}`}
                     >
                       <div className="flex justify-between items-start mb-2">
