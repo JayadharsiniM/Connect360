@@ -1,0 +1,22 @@
+﻿
+> connect360-frontend@1.0.0 build
+> vite build
+
+[36mvite v5.4.21 [32mbuilding for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 720 modules transformed.
+rendering chunks...
+npm : fatal error: out of memory allocating heap arena metadata
+At line:1 char:1
++ npm run build 2>&1 | Out-File build.txt -Encoding utf8; 
+Select-String ...
++ ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (fatal error: ou... aren 
+   a metadata:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+runtime stack:
+runtime.throw({0x69b9cf?, 0xbdba4?})
+	runtime/panic.go:1047 +0x65 fp=0xa23fbffbd8 sp=0xa23fbffba8 
+pc=0xe8865
