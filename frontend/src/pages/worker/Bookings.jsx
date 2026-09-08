@@ -163,6 +163,12 @@ export default function WorkerBookings() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-manrope text-headline-sm text-on-surface">{booking.service_name}</h3>
+                      {booking.booking_type === 'priority' && (
+                        <span className="badge badge-priority">
+                          <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                          Priority
+                        </span>
+                      )}
                       <StatusBadge status={booking.status} />
                     </div>
                     <p className="font-hanken text-body-sm text-on-surface-variant mt-1">Customer: {booking.customer_name}</p>
@@ -337,7 +343,15 @@ export default function WorkerBookings() {
                     {/* Details */}
                     <div className="flex-1 flex flex-col justify-center border-l border-surface-container pl-6">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="font-hanken text-label-md text-on-surface bg-surface-container-low px-2 py-1 rounded">{booking.service_name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-hanken text-label-md text-on-surface bg-surface-container-low px-2 py-1 rounded">{booking.service_name}</span>
+                          {booking.booking_type === 'priority' && (
+                            <span className="badge badge-priority">
+                              <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                              Priority
+                            </span>
+                          )}
+                        </div>
                         <StatusBadge status={booking.status} />
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-2">

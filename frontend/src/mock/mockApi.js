@@ -203,6 +203,98 @@ export const mockApi = {
     },
   },
 
+  // --- Priority Booking (Feature 3) ---
+  // Simulates the full matching lifecycle in-memory so the UI is fully usable
+  // in mock mode without AWS.
+  priority: {
+    create: async (data) => {
+      await delay(700);
+      const service = services.find((s) => s.id === data.service_id);
+      // Deterministic mock: pick the top-recommended worker as the match
+      const worker = [...mockWorkers].sort((a, b) => b.recommendation_score - a.recommendation_score)[0];
+      const id = `pri-${Date.now()}`;
+      const booking = {
+        id,
+        booking_id: id,
+        booking_type: 'priority',
+        status: 'worker_pending',
+        customer_id: 'c1000000-0000-0000-0000-000000000001',
+        worker_id: worker?.id,
+        worker_name: worker?.full_name || 'Worker',
+        service_id: data.service_id,
+        service_name: service?.name || 'Service',
+        scheduled_date: data.scheduled_date || new Date().toISOString().slice(0, 10),
+        scheduled_time: data.scheduled_time || '',
+        address: data.address || '',
+        notes: data.special_requirements || '',
+        total_amount: (worker?.hourly_rate || 500) * (data.duration_hours || 1),
+        match_score: 92,
+        created_at: new Date().toISOString(),
+      };
+      bookings.unshift(booking);
+      return resp({ message: 'Priority request created', booking_id: id, status: booking.status, match_score: 92 });
+    },
+    listCustomer: async () => {
+      await delay();
+      const result = bookings
+        .filter((b) => b.booking_type === 'priority' && b.customer_id === 'c1000000-0000-0000-0000-000000000001')
+        .map((b) => ({
+          booking_id: b.id,
+          booking_type: 'priority',
+          status: b.status,
+          service_name: b.service_name,
+          scheduled_date: b.scheduled_date,
+          scheduled_time: b.scheduled_time,
+          total_amount: b.total_amount,
+          match_score: b.match_score,
+          created_at: b.created_at,
+          worker: b.worker_id ? { worker_id: b.worker_id, full_name: b.worker_name, match_score: b.match_score } : undefined,
+        }));
+      return resp({ priority_bookings: result, count: result.length });
+    },
+    listWorkerRequests: async () => {
+      await delay();
+      const result = bookings
+        .filter((b) => b.booking_type === 'priority' && b.status === 'worker_pending')
+        .map((b) => ({
+          booking_id: b.id,
+          booking_type: 'priority',
+          customer_name: b.customer_name || 'Customer',
+          service_name: b.service_name,
+          scheduled_date: b.scheduled_date,
+          scheduled_time: b.scheduled_time,
+          area: b.address ? b.address.split(',').pop().trim() : 'Chennai',
+          estimated_earnings: b.total_amount,
+          match_score: b.match_score,
+        }));
+      return resp({ priority_requests: result, count: result.length });
+    },
+    accept: async (id) => {
+      await delay(500);
+      const b = bookings.find((bk) => bk.id === id);
+      if (b) b.status = 'accepted';
+      return resp({ message: 'Priority booking confirmed', status: 'accepted' });
+    },
+    reject: async (id) => {
+      await delay(500);
+      const b = bookings.find((bk) => bk.id === id);
+      if (b) b.status = 'no_worker_available'; // mock: single candidate, so no more
+      return resp({ message: 'Request declined; finding the next best worker', status: b?.status });
+    },
+    rematch: async (id) => {
+      await delay(600);
+      const b = bookings.find((bk) => bk.id === id);
+      if (b) b.status = 'worker_pending';
+      return resp({ message: 'Rematching', status: 'worker_pending' });
+    },
+    cancel: async (id) => {
+      await delay(400);
+      const b = bookings.find((bk) => bk.id === id);
+      if (b) b.status = 'cancelled';
+      return resp({ message: 'Priority request cancelled', status: 'cancelled' });
+    },
+  },
+
   // --- Verification ---
   verification: {
     getUploadUrl: async (fileName) => {

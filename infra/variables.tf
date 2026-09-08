@@ -129,3 +129,12 @@ variable "ai_max_output_tokens" {
   type        = string
   default     = "400"
 }
+
+# =============================================================================
+# Priority Booking (Feature 3)
+# =============================================================================
+variable "priority_offer_timeout_seconds" {
+  description = "Seconds a worker has to respond to a priority offer before it expires (lazy timeout)."
+  type        = string
+  default     = "120"
+}

@@ -83,6 +83,12 @@ export default function MyBookings() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-manrope text-headline-sm text-on-surface">{booking.service_name}</h3>
+                    {booking.booking_type === 'priority' && (
+                      <span className="badge badge-priority">
+                        <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                        Priority
+                      </span>
+                    )}
                     <StatusBadge status={booking.status} />
                   </div>
                   <p className="font-hanken text-body-sm text-on-surface-variant mt-1">
@@ -148,7 +154,15 @@ export default function MyBookings() {
                 <div key={booking.booking_id || booking.id} className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-md hover:shadow-level-1 transition-shadow flex flex-col h-full relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-surface-container rounded-bl-full -z-10 opacity-50 group-hover:scale-110 transition-transform" />
                   <div className="flex justify-between items-start mb-4">
-                    <StatusBadge status={booking.status} />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {booking.booking_type === 'priority' && (
+                        <span className="badge badge-priority">
+                          <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+                          Priority
+                        </span>
+                      )}
+                      <StatusBadge status={booking.status} />
+                    </div>
                     {booking.total_amount > 0 && <span className="font-manrope text-headline-sm text-on-surface">₹{booking.total_amount}</span>}
                   </div>
                   <div className="flex items-center gap-4 mb-6">

@@ -131,4 +131,80 @@
   .section-title {
     @apply font-manrope text-headline-sm text-primary;
   }
+
+  /* ===========================================================================
+     Priority Booking (Feature 3) — subtle, professional "premium" treatment
+     =========================================================================== */
+
+  /* ⚡ Priority badge */
+  .badge-priority {
+    @apply bg-secondary-fixed text-secondary;
+  }
+
+  /* Priority accent card: subtle gradient + left accent, not flashy */
+  .priority-card {
+    @apply relative overflow-hidden rounded-xl border border-outline-variant
+           bg-surface-container-lowest shadow-level-1;
+    background-image: linear-gradient(135deg, rgba(0, 88, 190, 0.05), transparent 55%);
+  }
+
+  .priority-accent-bar {
+    @apply absolute left-0 top-0 bottom-0 w-1 bg-secondary;
+  }
+
+  /* Priority option tile (booking-type chooser) */
+  .priority-option {
+    @apply relative overflow-hidden rounded-xl border p-stack-lg cursor-pointer
+           transition-all duration-200;
+  }
+}
+
+@layer utilities {
+  /* Matching pulse dots */
+  @keyframes c360-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .anim-pulse-dot {
+    animation: c360-pulse 1.2s ease-in-out infinite;
+  }
+  .anim-pulse-dot-2 { animation-delay: 0.2s; }
+  .anim-pulse-dot-3 { animation-delay: 0.4s; }
+
+  /* Indeterminate progress sweep for the matching bar */
+  @keyframes c360-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+  .anim-sweep {
+    animation: c360-sweep 1.4s ease-in-out infinite;
+  }
+
+  /* Radar ping for the "finding worker" visual */
+  @keyframes c360-ping {
+    0% { transform: scale(0.6); opacity: 0.7; }
+    80%, 100% { transform: scale(2.2); opacity: 0; }
+  }
+  .anim-ping {
+    animation: c360-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  /* Gentle rise-in for status transitions */
+  @keyframes c360-rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .anim-rise {
+    animation: c360-rise 0.35s ease-out both;
+  }
+
+  /* Respect users who prefer reduced motion — disable all priority animations */
+  @media (prefers-reduced-motion: reduce) {
+    .anim-pulse-dot,
+    .anim-sweep,
+    .anim-ping,
+    .anim-rise {
+      animation: none !important;
+    }
+  }
 }

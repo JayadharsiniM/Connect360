@@ -23,6 +23,45 @@ export const STATUS_LABELS = {
   in_progress: 'In Progress',
   completed: 'Completed',
   cancelled: 'Cancelled',
+  // Priority Booking lifecycle
+  matching: 'Matching',
+  worker_pending: 'Awaiting Worker',
+  rematching: 'Rematching',
+  no_worker_available: 'No Worker Available',
+  expired: 'Expired',
+};
+
+// Booking types
+export const BOOKING_TYPE = {
+  MANUAL: 'manual',
+  PRIORITY: 'priority',
+};
+
+// Priority Booking lifecycle statuses (customer-facing)
+export const PRIORITY_STATUS = {
+  MATCHING: 'matching',
+  WORKER_PENDING: 'worker_pending',
+  REMATCHING: 'rematching',
+  NO_WORKER: 'no_worker_available',
+  EXPIRED: 'expired',
+  ACCEPTED: 'accepted',
+  CANCELLED: 'cancelled',
+};
+
+// Priority request "when" options
+export const PRIORITY_URGENCY = {
+  ASAP: 'asap',
+  TODAY: 'today',
+  TOMORROW: 'tomorrow',
+  SCHEDULED: 'scheduled',
+};
+
+// Priority request "time window" options
+export const PRIORITY_TIME_WINDOW = {
+  MORNING: 'morning',
+  AFTERNOON: 'afternoon',
+  EVENING: 'evening',
+  SPECIFIC: 'specific',
 };
 
 // Days of week

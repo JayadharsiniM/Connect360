@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { workersService } from '../../services/workersService';
 import { bookingsService } from '../../services/bookingsService';
+import { priorityService } from '../../services/priorityService';
 import StatusBadge from '../../components/StatusBadge';
 import DashboardLayout from '../../components/DashboardLayout';
 
@@ -10,6 +11,7 @@ export default function WorkerDashboard() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [priorityCount, setPriorityCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadData(); }, []);
@@ -24,6 +26,13 @@ export default function WorkerDashboard() {
       setBookings(bookingsRes.data.bookings || []);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+
+    // Priority requests are non-critical; load separately so a failure here
+    // never blocks the main dashboard.
+    try {
+      const pr = await priorityService.listWorkerRequests();
+      setPriorityCount((pr.data.priority_requests || []).length);
+    } catch (err) { /* non-blocking */ }
   }
 
   async function handleRespond(bookingId, action) {
@@ -166,6 +175,26 @@ export default function WorkerDashboard() {
             </div>
           </div>
         </section>
+
+        {/* ⚡ Priority Requests entry (mobile) */}
+        <Link to="/worker/priority-requests" className="priority-card p-4 flex items-center gap-4 active:scale-[0.99] transition-transform">
+          <span className="priority-accent-bar" />
+          <span className="w-11 h-11 rounded-xl bg-secondary text-on-secondary flex items-center justify-center flex-shrink-0 ml-1">
+            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+          </span>
+          <span className="flex-1">
+            <span className="flex items-center gap-2">
+              <span className="font-manrope text-label-md text-primary">Priority Requests</span>
+              {priorityCount > 0 && (
+                <span className="bg-secondary text-on-secondary font-hanken text-label-sm px-2 py-0.5 rounded-full">{priorityCount}</span>
+              )}
+            </span>
+            <span className="block font-hanken text-body-sm text-on-surface-variant">
+              {priorityCount > 0 ? 'Auto-matched jobs awaiting your response' : 'No priority requests right now'}
+            </span>
+          </span>
+          <span className="material-symbols-outlined text-secondary">arrow_forward</span>
+        </Link>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
           {/* Booking Requests */}
@@ -358,6 +387,26 @@ export default function WorkerDashboard() {
         <div className="grid grid-cols-12 gap-gutter">
           {/* Left: New Booking Requests */}
           <div className="col-span-7 flex flex-col gap-stack-md">
+            {/* ⚡ Priority Requests entry (desktop) */}
+            <Link to="/worker/priority-requests" className="priority-card p-stack-md flex items-center gap-4 hover:shadow-level-2 transition-all group">
+              <span className="priority-accent-bar" />
+              <span className="w-12 h-12 rounded-xl bg-secondary text-on-secondary flex items-center justify-center flex-shrink-0 ml-1">
+                <span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+              </span>
+              <span className="flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">Priority Requests</span>
+                  {priorityCount > 0 && (
+                    <span className="bg-secondary text-on-secondary font-hanken text-label-sm px-2 py-0.5 rounded-full">{priorityCount}</span>
+                  )}
+                </span>
+                <span className="block font-hanken text-body-md text-on-surface-variant mt-0.5">
+                  {priorityCount > 0 ? 'Auto-matched jobs awaiting your response' : 'No priority requests right now'}
+                </span>
+              </span>
+              <span className="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </Link>
+
             <div className="flex items-center justify-between border-b border-outline-slate pb-2">
               <h3 className="font-manrope text-headline-sm text-on-background flex items-center">
                 <span className="material-symbols-outlined mr-2 text-on-surface-variant">inbox</span>
