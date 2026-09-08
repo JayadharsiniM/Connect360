@@ -1051,6 +1051,15 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.customer_profile_put,
     aws_api_gateway_integration.assistant_chat_post,
     aws_api_gateway_integration.cors,
+    # Priority Booking (Feature 3)
+    aws_api_gateway_integration.bookings_priority_post,
+    aws_api_gateway_integration.customer_priority_bookings_get,
+    aws_api_gateway_integration.worker_priority_requests_get,
+    aws_api_gateway_integration.priority_id_accept_post,
+    aws_api_gateway_integration.priority_id_reject_post,
+    aws_api_gateway_integration.priority_id_rematch_post,
+    aws_api_gateway_integration.priority_id_cancel_put,
+    aws_api_gateway_integration.priority_cors,
   ]
 }
 
@@ -1059,3 +1068,269 @@ resource "aws_api_gateway_stage" "main" {
   rest_api_id   = aws_api_gateway_rest_api.main.id
   stage_name    = var.environment
 }
+
+# =============================================================================
+# PRIORITY BOOKING routes (Feature 3) — all handled by the bookings Lambda
+#   POST /api/bookings/priority
+#   GET  /api/customer/priority-bookings
+#   GET  /api/worker/priority-requests
+#   POST /api/priority/{id}/accept
+#   POST /api/priority/{id}/reject
+#   POST /api/priority/{id}/rematch
+#   PUT  /api/priority/{id}/cancel
+# =============================================================================
+
+# /api/bookings/priority
+resource "aws_api_gateway_resource" "bookings_priority" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.bookings.id
+  path_part   = "priority"
+}
+
+resource "aws_api_gateway_method" "bookings_priority_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.bookings_priority.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "bookings_priority_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.bookings_priority.id
+  http_method             = aws_api_gateway_method.bookings_priority_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# /api/customer/priority-bookings
+resource "aws_api_gateway_resource" "customer_priority_bookings" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.customer.id
+  path_part   = "priority-bookings"
+}
+
+resource "aws_api_gateway_method" "customer_priority_bookings_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.customer_priority_bookings.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "customer_priority_bookings_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.customer_priority_bookings.id
+  http_method             = aws_api_gateway_method.customer_priority_bookings_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# /api/worker/priority-requests
+resource "aws_api_gateway_resource" "worker_priority_requests" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.worker.id
+  path_part   = "priority-requests"
+}
+
+resource "aws_api_gateway_method" "worker_priority_requests_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.worker_priority_requests.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "worker_priority_requests_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.worker_priority_requests.id
+  http_method             = aws_api_gateway_method.worker_priority_requests_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# /api/priority and /api/priority/{id}
+resource "aws_api_gateway_resource" "priority" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "priority"
+}
+
+resource "aws_api_gateway_resource" "priority_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.priority.id
+  path_part   = "{id}"
+}
+
+resource "aws_api_gateway_resource" "priority_id_accept" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.priority_id.id
+  path_part   = "accept"
+}
+
+resource "aws_api_gateway_resource" "priority_id_reject" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.priority_id.id
+  path_part   = "reject"
+}
+
+resource "aws_api_gateway_resource" "priority_id_rematch" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.priority_id.id
+  path_part   = "rematch"
+}
+
+resource "aws_api_gateway_resource" "priority_id_cancel" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.priority_id.id
+  path_part   = "cancel"
+}
+
+# POST /api/priority/{id}/accept
+resource "aws_api_gateway_method" "priority_id_accept_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.priority_id_accept.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "priority_id_accept_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.priority_id_accept.id
+  http_method             = aws_api_gateway_method.priority_id_accept_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# POST /api/priority/{id}/reject
+resource "aws_api_gateway_method" "priority_id_reject_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.priority_id_reject.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "priority_id_reject_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.priority_id_reject.id
+  http_method             = aws_api_gateway_method.priority_id_reject_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# POST /api/priority/{id}/rematch
+resource "aws_api_gateway_method" "priority_id_rematch_post" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.priority_id_rematch.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "priority_id_rematch_post" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.priority_id_rematch.id
+  http_method             = aws_api_gateway_method.priority_id_rematch_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# PUT /api/priority/{id}/cancel
+resource "aws_api_gateway_method" "priority_id_cancel_put" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.priority_id_cancel.id
+  http_method   = "PUT"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "priority_id_cancel_put" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.priority_id_cancel.id
+  http_method             = aws_api_gateway_method.priority_id_cancel_put.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# CORS (OPTIONS) for the new priority resources
+locals {
+  priority_cors_resources = {
+    bookings_priority          = aws_api_gateway_resource.bookings_priority.id
+    customer_priority_bookings = aws_api_gateway_resource.customer_priority_bookings.id
+    worker_priority_requests   = aws_api_gateway_resource.worker_priority_requests.id
+    priority_id_accept         = aws_api_gateway_resource.priority_id_accept.id
+    priority_id_reject         = aws_api_gateway_resource.priority_id_reject.id
+    priority_id_rematch        = aws_api_gateway_resource.priority_id_rematch.id
+    priority_id_cancel         = aws_api_gateway_resource.priority_id_cancel.id
+  }
+}
+
+resource "aws_api_gateway_method" "priority_cors" {
+  for_each = local.priority_cors_resources
+
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = each.value
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "priority_cors" {
+  for_each = local.priority_cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.priority_cors[each.key].http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "priority_cors" {
+  for_each = local.priority_cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.priority_cors[each.key].http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "priority_cors" {
+  for_each = local.priority_cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.priority_cors[each.key].http_method
+  status_code = aws_api_gateway_method_response.priority_cors[each.key].status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+# NOTE: The single aws_api_gateway_deployment.main above redeploys on every apply
+# (triggers = timestamp()) and covers the whole REST API, so these priority
+# routes are picked up automatically. The priority integrations are added to its
+# depends_on list so a fresh apply orders them before the (re)deployment.

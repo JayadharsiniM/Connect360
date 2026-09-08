@@ -27,6 +27,7 @@ LAMBDAS=(
     "connect360-bookings:bookings"
     "connect360-verification:verification"
     "connect360-admin:admin"
+    "connect360-assistant:assistant"
 )
 
 for entry in "${LAMBDAS[@]}"; do
@@ -38,8 +39,15 @@ for entry in "${LAMBDAS[@]}"; do
     # Create temp build directory
     BUILD_DIR=$(mktemp -d)
     
-    # Copy Lambda handler
-    cp "$LAMBDAS_DIR/$LAMBDA_DIR/handler.py" "$BUILD_DIR/"
+    # Copy ALL Lambda source files (handler.py + any sibling modules such as
+    # priority_handler.py), excluding tests, so multi-file lambdas package fully.
+    for src in "$LAMBDAS_DIR/$LAMBDA_DIR"/*.py; do
+        base="$(basename "$src")"
+        case "$base" in
+            test_*|*_test.py) continue ;;  # skip unit tests
+        esac
+        cp "$src" "$BUILD_DIR/"
+    done
     
     # Copy shared modules into a 'shared' subdirectory AND root (for direct imports)
     mkdir -p "$BUILD_DIR/shared"

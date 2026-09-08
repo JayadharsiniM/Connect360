@@ -21,6 +21,9 @@ import WorkerDetail from './pages/customer/WorkerDetail';
 import BookingForm from './pages/customer/BookingForm';
 import MyBookings from './pages/customer/MyBookings';
 import CustomerProfile from './pages/customer/Profile';
+import BookingChoice from './pages/customer/BookingChoice';
+import PriorityBookingForm from './pages/customer/PriorityBookingForm';
+import PriorityBookings from './pages/customer/PriorityBookings';
 
 // Worker pages
 import WorkerDashboard from './pages/worker/Dashboard';
@@ -28,6 +31,7 @@ import WorkerProfile from './pages/worker/Profile';
 import WorkerAvailability from './pages/worker/Availability';
 import WorkerBookings from './pages/worker/Bookings';
 import WorkerVerification from './pages/worker/Verification';
+import WorkerPriorityRequests from './pages/worker/PriorityRequests';
 
 // Admin pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -72,6 +76,9 @@ export default function App() {
           <Route path="/customer/workers" element={<ProtectedRoute allowedRoles={['customer']}><BrowseWorkers /></ProtectedRoute>} />
           <Route path="/customer/workers/:id" element={<ProtectedRoute allowedRoles={['customer']}><WorkerDetail /></ProtectedRoute>} />
           <Route path="/customer/book/:workerId" element={<ProtectedRoute allowedRoles={['customer']}><BookingForm /></ProtectedRoute>} />
+          <Route path="/customer/book-type" element={<ProtectedRoute allowedRoles={['customer']}><BookingChoice /></ProtectedRoute>} />
+          <Route path="/customer/priority/new" element={<ProtectedRoute allowedRoles={['customer']}><PriorityBookingForm /></ProtectedRoute>} />
+          <Route path="/customer/priority" element={<ProtectedRoute allowedRoles={['customer']}><PriorityBookings /></ProtectedRoute>} />
           <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><MyBookings /></ProtectedRoute>} />
           <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
 
@@ -80,6 +87,7 @@ export default function App() {
           <Route path="/worker/profile" element={<ProtectedRoute allowedRoles={['worker']}><WorkerProfile /></ProtectedRoute>} />
           <Route path="/worker/availability" element={<ProtectedRoute allowedRoles={['worker']}><WorkerAvailability /></ProtectedRoute>} />
           <Route path="/worker/bookings" element={<ProtectedRoute allowedRoles={['worker']}><WorkerBookings /></ProtectedRoute>} />
+          <Route path="/worker/priority-requests" element={<ProtectedRoute allowedRoles={['worker']}><WorkerPriorityRequests /></ProtectedRoute>} />
           <Route path="/worker/verification" element={<ProtectedRoute allowedRoles={['worker']}><WorkerVerification /></ProtectedRoute>} />
 
           {/* Admin routes */}

@@ -130,6 +130,25 @@ export default function CustomerDashboard() {
           </button>
         </section>
 
+        {/* Priority Booking CTA (mobile/tablet) */}
+        <button
+          onClick={() => navigate('/customer/priority/new')}
+          className="priority-card p-4 flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+        >
+          <span className="priority-accent-bar" />
+          <span className="w-11 h-11 rounded-xl bg-secondary text-on-secondary flex items-center justify-center flex-shrink-0 ml-1">
+            <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+          </span>
+          <span className="flex-1">
+            <span className="flex items-center gap-2">
+              <span className="font-manrope text-label-md text-primary">Priority Booking</span>
+              <span className="badge badge-priority !px-2 !py-0.5 text-label-sm">New</span>
+            </span>
+            <span className="block font-hanken text-body-sm text-on-surface-variant">Let us find the best worker for you</span>
+          </span>
+          <span className="material-symbols-outlined text-secondary">arrow_forward</span>
+        </button>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
           {/* Left Column */}
           <div className="lg:col-span-2 flex flex-col gap-stack-lg">
@@ -362,6 +381,27 @@ export default function CustomerDashboard() {
                 Find Pros
               </button>
             </div>
+
+            {/* Priority Booking CTA (desktop) */}
+            <button
+              onClick={() => navigate('/customer/priority/new')}
+              className="priority-card p-stack-md flex items-center gap-4 text-left hover:shadow-level-2 transition-all group"
+            >
+              <span className="priority-accent-bar" />
+              <span className="w-12 h-12 rounded-xl bg-secondary text-on-secondary flex items-center justify-center flex-shrink-0 ml-1">
+                <span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
+              </span>
+              <span className="flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">Priority Booking</span>
+                  <span className="badge badge-priority">Let us match you</span>
+                </span>
+                <span className="block font-hanken text-body-md text-on-surface-variant mt-0.5">
+                  Tell us what you need and we'll automatically find the most suitable available worker.
+                </span>
+              </span>
+              <span className="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            </button>
 
             {/* Upcoming Booking */}
             {upcomingBooking && (

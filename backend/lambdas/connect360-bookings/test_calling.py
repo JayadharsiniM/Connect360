@@ -64,10 +64,15 @@ _fake_db.get_item = _get_item
 _fake_db.query_items = _query_items
 _fake_db.put_item = _noop
 _fake_db.update_item = _noop
+_fake_db.delete_item = _noop
+_fake_db.transact_write = _noop
 _fake_db.query_all = lambda *a, **k: []
 _fake_db.generate_id = lambda: "test-id"
 _fake_db.now_iso = lambda: "2026-01-01T00:00:00Z"
 _fake_db.decimal_to_float = lambda x: x
+# handler imports priority_handler which needs `table` + `activity_table`
+_fake_db.table = object()
+_fake_db.activity_table = object()
 sys.modules["db"] = _fake_db
 
 import calling_provider  # noqa: E402  (real module)

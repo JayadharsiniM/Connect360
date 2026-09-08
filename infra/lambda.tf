@@ -48,6 +48,9 @@ locals {
     TWILIO_FROM_NUMBER = var.twilio_from_number
     TWILIO_TWIML_URL   = var.twilio_twiml_url
     TWILIO_API_BASE    = var.twilio_api_base
+    # Priority Booking (Feature 3): how long a worker offer stays open before
+    # it is treated as expired (lazy timeout, evaluated on customer poll/rematch).
+    PRIORITY_OFFER_TIMEOUT_SECONDS = var.priority_offer_timeout_seconds
   })
 
   # Assistant Lambda additionally gets Bedrock AI config (Feature 2).

@@ -15,6 +15,7 @@ from db import (put_item, get_item, update_item, query_items, query_all,
 from response import success, created, error, not_found, forbidden, server_error
 from auth_helpers import get_user_claims, get_user_sub, get_user_role, get_path_param, get_query_param, get_body
 import calling_provider
+import priority_handler
 
 
 def lambda_handler(event, context):
@@ -44,6 +45,21 @@ def lambda_handler(event, context):
             return get_worker_reviews(event)
         elif method == 'POST' and '/bookings/{id}/call' in resource:
             return initiate_call(event)
+        # ---- Priority Booking (Feature 3) — delegated to priority_handler ----
+        elif method == 'POST' and resource == '/api/bookings/priority':
+            return priority_handler.create_priority_booking(event)
+        elif method == 'GET' and resource == '/api/customer/priority-bookings':
+            return priority_handler.list_customer_priority_bookings(event)
+        elif method == 'GET' and resource == '/api/worker/priority-requests':
+            return priority_handler.list_worker_priority_requests(event)
+        elif method == 'POST' and '/priority/{id}/accept' in resource:
+            return priority_handler.worker_accept_priority(event)
+        elif method == 'POST' and '/priority/{id}/reject' in resource:
+            return priority_handler.worker_reject_priority(event)
+        elif method == 'POST' and '/priority/{id}/rematch' in resource:
+            return priority_handler.rematch_priority_booking(event)
+        elif method == 'PUT' and '/priority/{id}/cancel' in resource:
+            return priority_handler.cancel_priority_booking(event)
         else:
             return error('Route not found', status_code=404)
     except Exception as e:
@@ -97,6 +113,7 @@ def create_booking(event):
         'PK': f'BOOKING#{booking_id}',
         'SK': 'METADATA',
         'id': booking_id,
+        'booking_type': 'manual',
         'customer_id': customer_id,
         'worker_id': worker_id,
         'service_id': service_id,
@@ -123,6 +140,7 @@ def create_booking(event):
         'PK': f'USER#{customer_id}',
         'SK': f'BOOKING#{booking_id}',
         'booking_id': booking_id,
+        'booking_type': 'manual',
         'worker_name': worker_user.get('full_name', '') if worker_user else '',
         'service_name': service.get('name', '') if service else '',
         'status': 'pending',
@@ -137,6 +155,7 @@ def create_booking(event):
         'PK': f'WORKER_BOOKING#{worker_id}',
         'SK': f'BOOKING#{booking_id}',
         'booking_id': booking_id,
+        'booking_type': 'manual',
         'customer_name': customer_user.get('full_name', '') if customer_user else '',
         'service_name': service.get('name', '') if service else '',
         'status': 'pending',
