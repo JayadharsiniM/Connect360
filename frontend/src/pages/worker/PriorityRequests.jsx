@@ -7,6 +7,14 @@ import { useAuth } from '../../context/AuthContext';
 import CallButton from '../../components/CallButton';
 import LiveTrackingMap from '../../components/LiveTrackingMap';
 
+// Format seconds as M:SS for the real offer-expiry countdown.
+function formatCountdown(secs) {
+  if (secs == null) return '--';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s < 10 ? `0${s}` : s}`;
+}
+
 export default function WorkerPriorityRequests() {
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
@@ -15,21 +23,15 @@ export default function WorkerPriorityRequests() {
   const [actionId, setActionId] = useState(null);
   const [flash, setFlash] = useState('');
   const [isOnline, setIsOnline] = useState(true);
-  const [countdown, setCountdown] = useState(14);
-  const [autoAccept, setAutoAccept] = useState(false);
 
-  // GPS & Road Routing state
+  // Real GPS & Road Routing state
   const [workerLocation, setWorkerLocation] = useState(null);
   const [customerLocation, setCustomerLocation] = useState(null);
   const [routeMetrics, setRouteMetrics] = useState(null);
-  const [gpsMode, setGpsMode] = useState('searching'); // 'searching' | 'device' | 'test_drive'
+  const [gpsMode, setGpsMode] = useState('searching'); // 'searching' | 'device' | 'denied' | 'unsupported'
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
-  const [isDriving, setIsDriving] = useState(false);
 
   const pollRef = useRef(null);
-  const driveIntervalRef = useRef(null);
-  const driveIndexRef = useRef(0);
-  const isDrivingRef = useRef(false);
 
   // Load incoming offers and check for active accepted bookings
   const load = useCallback(async () => {
@@ -43,9 +45,6 @@ export default function WorkerPriorityRequests() {
       const res = await priorityService.listWorkerRequests();
       const list = res.data.priority_requests || [];
       setRequests(list);
-      if (list.length > 0) {
-        setCountdown(14);
-      }
 
       // 2. Check for active accepted priority jobs
       const resBookings = await bookingsService.listWorkerBookings();
@@ -67,29 +66,20 @@ export default function WorkerPriorityRequests() {
     return () => clearInterval(pollRef.current);
   }, [load]);
 
-  // Geocode active job customer address or active offer area
+  // Geocode the active job / offer destination address to real coordinates.
+  // This is only the CUSTOMER destination; the worker location comes from real GPS.
   useEffect(() => {
-    const targetAddress = activeJob?.address || requests[0]?.address || 'Chennai, Tamil Nadu';
+    const targetAddress = activeJob?.address || requests[0]?.address;
+    if (!targetAddress) return;
     let isCancelled = false;
 
     async function resolveCustomer() {
       const coords = await geocodeAddress(targetAddress);
-      if (!isCancelled) {
+      if (!isCancelled && coords) {
         setCustomerLocation({
           lat: coords.lat,
           lng: coords.lng,
           address: targetAddress,
-        });
-
-        // If worker location is not yet set, initialize near customer so route is ready
-        setWorkerLocation((prev) => {
-          if (prev) return prev;
-          return {
-            latitude: coords.lat + 0.012,
-            longitude: coords.lng - 0.014,
-            heading: 60,
-            speed: 35,
-          };
         });
       }
     }
@@ -100,97 +90,45 @@ export default function WorkerPriorityRequests() {
     };
   }, [activeJob?.address, requests]);
 
-  // Stream actual device GPS via navigator.geolocation.watchPosition
+  // Stream the worker's REAL device GPS via navigator.geolocation.watchPosition
+  // and transmit it to the backend so the customer can track the worker live.
   useEffect(() => {
     const bookingId = activeJob?.id || activeJob?.booking_id;
-    if (!bookingId || isDriving) return;
+    // Only broadcast GPS once there is an accepted/in-progress job to track.
+    if (!bookingId) return;
 
-    if ('geolocation' in navigator) {
-      const watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          if (isDrivingRef.current) return;
-          const { latitude, longitude, heading, speed, accuracy } = pos.coords;
-          const locData = {
-            latitude,
-            longitude,
-            heading: heading || 0,
-            speed: speed || 0,
-            accuracy: Math.round(accuracy || 10),
-            timestamp: new Date().toISOString(),
-          };
-          setWorkerLocation(locData);
-          setGpsAccuracy(Math.round(accuracy || 10));
-          setGpsMode('device');
-
-          // Transmit real GPS to backend
-          bookingsService.updateLocation(bookingId, locData).catch(console.warn);
-        },
-        (err) => {
-          console.warn('Device geolocation note:', err.message);
-          setGpsMode('simulated_fallback');
-        },
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
-      );
-
-      return () => navigator.geolocation.clearWatch(watchId);
+    if (!('geolocation' in navigator)) {
+      setGpsMode('unsupported');
+      return;
     }
-  }, [activeJob?.id, activeJob?.booking_id, isDriving]);
 
-  // Test Drive Simulation along real road waypoints (OSRM / Google Routes)
-  useEffect(() => {
-    isDrivingRef.current = isDriving;
-    const bookingId = activeJob?.id || activeJob?.booking_id;
-    const waypoints = routeMetrics?.coordinates;
-
-    if (isDriving && waypoints && waypoints.length > 1 && bookingId) {
-      clearInterval(driveIntervalRef.current);
-      setGpsMode('test_drive');
-
-      driveIntervalRef.current = setInterval(() => {
-        driveIndexRef.current += 1;
-        if (driveIndexRef.current >= waypoints.length) {
-          driveIndexRef.current = 0; // Loop or reach destination
-        }
-
-        const currentPoint = waypoints[driveIndexRef.current];
-        const nextPoint = waypoints[Math.min(driveIndexRef.current + 1, waypoints.length - 1)];
-
-        // Compute heading angle between current and next road waypoint
-        const dLat = nextPoint[0] - currentPoint[0];
-        const dLng = nextPoint[1] - currentPoint[1];
-        const angleDeg = ((Math.atan2(dLng, dLat) * 180) / Math.PI + 360) % 360;
-
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, heading, speed, accuracy } = pos.coords;
         const locData = {
-          latitude: currentPoint[0],
-          longitude: currentPoint[1],
-          heading: Math.round(angleDeg),
-          speed: 42,
-          accuracy: 5,
+          latitude,
+          longitude,
+          heading: heading || 0,
+          speed: speed || 0,
+          accuracy: Math.round(accuracy || 10),
           timestamp: new Date().toISOString(),
         };
-
         setWorkerLocation(locData);
-        // Transmit coordinates to backend stream
+        setGpsAccuracy(Math.round(accuracy || 10));
+        setGpsMode('device');
+
+        // Transmit real GPS to the backend tracking stream
         bookingsService.updateLocation(bookingId, locData).catch(console.warn);
-      }, 1800);
+      },
+      (err) => {
+        console.warn('Device geolocation error:', err.message);
+        setGpsMode(err.code === err.PERMISSION_DENIED ? 'denied' : 'searching');
+      },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
+    );
 
-      return () => clearInterval(driveIntervalRef.current);
-    } else {
-      clearInterval(driveIntervalRef.current);
-    }
-  }, [isDriving, routeMetrics?.coordinates, activeJob?.id, activeJob?.booking_id]);
-
-  // 14s Countdown for incoming offer
-  useEffect(() => {
-    if (requests.length === 0) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) return 0;
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [requests.length]);
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [activeJob?.id, activeJob?.booking_id]);
 
   async function handleAccept(id) {
     setActionId(id);
@@ -235,6 +173,24 @@ export default function WorkerPriorityRequests() {
 
   const activeOffer = requests[0];
   const activeJobId = activeJob?.id || activeJob?.booking_id;
+
+  // Real offer countdown derived from the backend's offer_expires_at timestamp.
+  // No fake timer: this reflects the actual server-side offer window.
+  const [offerSecondsLeft, setOfferSecondsLeft] = useState(null);
+  useEffect(() => {
+    const expiresAt = activeOffer?.offer_expires_at;
+    if (!expiresAt) {
+      setOfferSecondsLeft(null);
+      return;
+    }
+    const compute = () => {
+      const ms = new Date(expiresAt).getTime() - Date.now();
+      setOfferSecondsLeft(Math.max(0, Math.round(ms / 1000)));
+    };
+    compute();
+    const t = setInterval(compute, 1000);
+    return () => clearInterval(t);
+  }, [activeOffer?.offer_expires_at, activeOffer?.booking_id]);
 
   return (
     <div className="relative w-full h-screen flex flex-col bg-[#f8f9ff] overflow-hidden select-none font-sans text-slate-800">
@@ -285,13 +241,15 @@ export default function WorkerPriorityRequests() {
 
         {/* GPS Live Telemetry Pill */}
         <div className="hidden md:flex items-center gap-2.5 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200 text-xs shadow-xs">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span className={`w-2 h-2 rounded-full animate-pulse ${gpsMode === 'device' ? 'bg-emerald-500' : gpsMode === 'denied' ? 'bg-red-500' : 'bg-amber-500'}`}></span>
           <span className="font-extrabold text-slate-800">
             {gpsMode === 'device'
               ? `Live Device GPS (±${gpsAccuracy || 10}m)`
-              : gpsMode === 'test_drive'
-              ? 'Road-Drive Simulator Active'
-              : 'GPS Streaming Ready'}
+              : gpsMode === 'denied'
+              ? 'Location Permission Denied'
+              : gpsMode === 'unsupported'
+              ? 'GPS Not Supported'
+              : 'Acquiring GPS Signal...'}
           </span>
           {workerLocation && (
             <span className="text-[10px] text-slate-500 font-mono">
@@ -317,7 +275,7 @@ export default function WorkerPriorityRequests() {
 
       {/* Main Interactive Leaflet Map Area */}
       <div className="relative flex-1 w-full overflow-hidden bg-[#eef2f8]">
-        {customerLocation && workerLocation ? (
+        {customerLocation ? (
           <LiveTrackingMap
             workerLocation={workerLocation}
             customerLocation={customerLocation}
@@ -330,7 +288,9 @@ export default function WorkerPriorityRequests() {
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 gap-3">
             <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-xs font-bold">Acquiring GPS & Map Satellites...</span>
+            <span className="text-xs font-bold">
+              {activeJob || activeOffer ? 'Resolving customer location...' : 'Waiting for a priority request...'}
+            </span>
           </div>
         )}
 
@@ -370,15 +330,15 @@ export default function WorkerPriorityRequests() {
                       Guaranteed Total Payout
                     </span>
                     <div className="text-2xl font-black text-slate-900 tracking-tight">
-                      ${activeJob.total_amount || 145}.00
+                      ${activeJob.total_amount || 0}.00
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-base font-extrabold text-blue-600">
-                      ~{routeMetrics?.durationMinutes ?? 8} min drive
+                      {routeMetrics?.durationMinutes != null ? `~${routeMetrics.durationMinutes} min drive` : 'Calculating…'}
                     </div>
                     <span className="text-[10px] text-slate-500 font-semibold">
-                      {routeMetrics?.distanceKm ?? '2.1'} km via actual roads
+                      {routeMetrics?.distanceKm != null ? `${routeMetrics.distanceKm} km via actual roads` : 'Awaiting GPS'}
                     </span>
                   </div>
                 </div>
@@ -395,21 +355,9 @@ export default function WorkerPriorityRequests() {
                   </div>
                 </div>
 
-                {/* Call Customer & GPS Test Drive Bar */}
+                {/* Call Customer */}
                 <div className="flex items-center gap-2 pt-1">
                   <CallButton bookingId={activeJobId} status={activeJob.status} label="Call Customer" className="flex-1" />
-                  <button
-                    onClick={() => setIsDriving(!isDriving)}
-                    type="button"
-                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
-                      isDriving
-                        ? 'bg-amber-100 border-amber-300 text-amber-900 animate-pulse'
-                        : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'
-                    }`}
-                    title="Simulate driving along actual road network for testing without moving physical device"
-                  >
-                    <span>{isDriving ? '⏸ Pause Drive' : '🚗 Test Drive Route'}</span>
-                  </button>
                 </div>
 
                 {/* Action Buttons */}
@@ -450,7 +398,7 @@ export default function WorkerPriorityRequests() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-slate-900 text-amber-300 px-2.5 py-0.5 rounded-full font-mono text-xs font-black shadow-sm">
-                  <span>⏱ 0:{countdown < 10 ? `0${countdown}` : countdown}</span>
+                  <span>⏱ {formatCountdown(offerSecondsLeft)}</span>
                 </div>
               </div>
 
@@ -462,16 +410,18 @@ export default function WorkerPriorityRequests() {
                     </span>
                     <div className="text-3xl font-black text-slate-900 tracking-tight flex items-baseline gap-1.5">
                       <span className="text-emerald-600 font-extrabold">
-                        ${activeOffer.estimated_earnings || activeOffer.total_amount || 145}.00
+                        {activeOffer.estimated_earnings ? `$${activeOffer.estimated_earnings}.00` : '—'}
                       </span>
                       <span className="text-xs font-semibold text-slate-400">est.</span>
                     </div>
                   </div>
                   <div className="text-right space-y-1">
-                    <span className="inline-block px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-extrabold">
-                      +$30.00 Express Surge
-                    </span>
-                    <span className="block text-[10px] text-slate-500">Direct deposit upon signoff</span>
+                    {activeOffer.match_score ? (
+                      <span className="inline-block px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-extrabold">
+                        {activeOffer.match_score}% Match
+                      </span>
+                    ) : null}
+                    <span className="block text-[10px] text-slate-500">Priority dispatch</span>
                   </div>
                 </div>
 
@@ -486,7 +436,7 @@ export default function WorkerPriorityRequests() {
                       </span>
                     </div>
                     <h3 className="text-base font-extrabold text-slate-900 leading-snug">
-                      {activeOffer.service_name || 'Emergency'} Diagnostics & Immediate Repair
+                      {activeOffer.service_name || 'Priority service request'}
                     </h3>
                   </div>
 
@@ -498,7 +448,7 @@ export default function WorkerPriorityRequests() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-extrabold text-slate-900">
-                            {activeOffer.address || activeOffer.area || 'Customer Address'}
+                            {activeOffer.area || 'Nearby area'}
                           </span>
                           <span className="text-blue-600 font-extrabold">
                             {routeMetrics?.durationMinutes ? `~${routeMetrics.durationMinutes} min drive` : 'Near you'}
@@ -510,12 +460,12 @@ export default function WorkerPriorityRequests() {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-2.5 border border-slate-200/80 text-[11px] text-slate-600 italic flex items-start gap-2 shadow-xs">
-                      <span className="not-italic text-amber-500 font-bold">💬</span>
-                      <span className="leading-relaxed">
-                        "{activeOffer.special_requirements || 'Urgent repair required immediately.'}"
-                      </span>
-                    </div>
+                    {activeOffer.special_requirements && (
+                      <div className="bg-white rounded-lg p-2.5 border border-slate-200/80 text-[11px] text-slate-600 italic flex items-start gap-2 shadow-xs">
+                        <span className="not-italic text-amber-500 font-bold">💬</span>
+                        <span className="leading-relaxed">"{activeOffer.special_requirements}"</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -529,14 +479,12 @@ export default function WorkerPriorityRequests() {
                   >
                     <span className="relative z-10 flex items-center gap-2 tracking-wide uppercase font-black">
                       <span>{actionId === activeOffer.booking_id ? 'CONFIRMING...' : 'TAP TO ACCEPT'}</span>
-                      <span className="text-xs bg-slate-950 text-amber-300 px-2.5 py-0.5 rounded-full font-mono font-black">
-                        0:{countdown < 10 ? `0${countdown}` : countdown}
-                      </span>
+                      {offerSecondsLeft != null && (
+                        <span className="text-xs bg-slate-950 text-amber-300 px-2.5 py-0.5 rounded-full font-mono font-black">
+                          {formatCountdown(offerSecondsLeft)}
+                        </span>
+                      )}
                     </span>
-                    <div
-                      className="absolute left-0 bottom-0 top-0 bg-amber-500/30 transition-all duration-1000 pointer-events-none"
-                      style={{ width: `${(countdown / 14) * 100}%` }}
-                    ></div>
                   </button>
 
                   <div className="flex items-center justify-between px-1 text-xs pt-1">
@@ -549,7 +497,9 @@ export default function WorkerPriorityRequests() {
                       Decline Request
                     </button>
                     <span className="text-[11px] text-slate-400 font-medium">
-                      Auto-dispatch will route to next tech in {countdown}s
+                      {offerSecondsLeft != null
+                        ? `Offer expires in ${offerSecondsLeft}s, then reassigned`
+                        : 'Respond to keep this job'}
                     </span>
                   </div>
                 </div>
@@ -592,37 +542,28 @@ export default function WorkerPriorityRequests() {
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Road routing: <strong className="text-slate-800 font-bold">{routeMetrics?.source === 'google-maps' ? 'Google Maps Routes' : 'OSRM Turn-by-Turn'}</strong> • GPS Accuracy:{' '}
-                  <strong className="text-emerald-600 font-bold">±{gpsAccuracy || 5}m</strong>
+                  <strong className="text-emerald-600 font-bold">{gpsAccuracy != null ? `±${gpsAccuracy}m` : 'acquiring…'}</strong>
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-6 text-xs text-slate-600 w-full lg:w-auto justify-between sm:justify-start border-y lg:border-y-0 border-slate-100 py-2 lg:py-0">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Acceptance Rate</span>
-                <span className="text-sm font-black text-emerald-600">98% (Tier 1)</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Distance to Customer</span>
+                <span className="text-sm font-black text-emerald-600">
+                  {routeMetrics?.distanceKm != null ? `${routeMetrics.distanceKm} km` : '—'}
+                </span>
               </div>
               <div className="h-6 w-px bg-slate-200"></div>
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Dispatch Score</span>
-                <span className="text-sm font-black text-blue-600">98 / 100</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Est. Drive Time</span>
+                <span className="text-sm font-black text-blue-600">
+                  {routeMetrics?.durationMinutes != null ? `~${routeMetrics.durationMinutes} min` : '—'}
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
-              <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-xs text-slate-700 shadow-xs">
-                <span className="text-[11px] font-semibold text-slate-600">Auto-Accept:</span>
-                <button
-                  onClick={() => setAutoAccept(!autoAccept)}
-                  className={`w-8 h-4 rounded-full p-0.5 transition flex items-center shadow-inner ${
-                    autoAccept ? 'bg-blue-600 justify-end' : 'bg-slate-300 justify-start'
-                  }`}
-                  type="button"
-                >
-                  <span className="w-3 h-3 rounded-full bg-white block shadow-sm"></span>
-                </button>
-              </div>
-
               <Link
                 to="/worker/bookings"
                 className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold border border-blue-700 flex items-center gap-1.5 transition shadow-sm"

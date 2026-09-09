@@ -295,6 +295,8 @@ def _write_worker_priority_ref(booking):
         'scheduled_date': booking.get('scheduled_date', ''),
         'scheduled_time': booking.get('scheduled_time', ''),
         'address_area': booking.get('city') or _coarse_area(booking.get('address', '')),
+        # Job scope so the worker knows what they are accepting (not PII).
+        'special_requirements': booking.get('notes', ''),
         'total_amount': booking.get('total_amount', 0),
         'match_score': booking.get('match_score', 0),
         'status': STATUS_WORKER_PENDING,
@@ -518,6 +520,7 @@ def list_worker_priority_requests(event):
             'scheduled_date': r.get('scheduled_date'),
             'scheduled_time': r.get('scheduled_time'),
             'area': r.get('address_area'),
+            'special_requirements': r.get('special_requirements', ''),
             'estimated_earnings': r.get('total_amount', 0),
             'match_score': r.get('match_score', 0),
             'offer_expires_at': r.get('offer_expires_at'),
