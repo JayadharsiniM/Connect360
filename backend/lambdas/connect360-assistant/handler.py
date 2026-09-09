@@ -27,10 +27,7 @@ import ai_provider
 import assistant_knowledge
 
 
-# Booking statuses for which "active booking" context is meaningful
 _ACTIVE_STATUSES = ('accepted', 'in_progress')
-
-# Cap the user message length to bound cost / abuse
 _MAX_MESSAGE_LEN = 1000
 
 
@@ -53,7 +50,7 @@ def _get_user_id_from_sub(cognito_sub):
 
 
 def chat(event):
-    """POST /api/assistant/chat  { message, booking_id? }"""
+    """POST /api/assistant/chat  { message, booking_id?, image_base64?, language?, history? }"""
     role = get_user_role(event)
     if role not in ('customer', 'worker', 'admin'):
         return forbidden('Not allowed')
@@ -65,50 +62,89 @@ def chat(event):
     body = get_body(event)
     message = (body.get('message') or '').strip()
     booking_id = (body.get('booking_id') or '').strip()
+    image_base64 = body.get('image_base64') or None
+    language = (body.get('language') or 'en').strip()
+    history = body.get('history') or []
 
     if not message:
         return error('Please enter a question')
     if len(message) > _MAX_MESSAGE_LEN:
         message = message[:_MAX_MESSAGE_LEN]
 
-    # Build AUTHORIZED, REDACTED context (only if a booking is referenced and
-    # the caller actually belongs to it).
     context_text = _build_authorized_context(user_id, role, booking_id)
-
-    # Assistant scope by role (customers get limited job/service assistance)
     system_prompt = assistant_knowledge.build_system_prompt(role)
 
-    # Try AI provider (off by default -> not_configured -> rule-based fallback)
-    ai_result = ai_provider.generate(system_prompt, message, context_text)
+    ai_result = ai_provider.generate(
+        system_prompt, message, context_text,
+        image_base64=image_base64, language=language, history=history
+    )
+
+    structured = None
+    workers = []
 
     if ai_result.get('status') == ai_provider.STATUS_OK:
         answer = ai_result.get('text', '').strip()
+        structured = ai_result.get('structured')
         source = 'ai'
         if not answer:
             answer = assistant_knowledge.fallback_answer(role, message, context_text)
             source = 'fallback'
+        elif structured and role == 'customer':
+            # All required fields collected and user confirmed
+            if structured.get('confirmed') and not structured.get('missing_fields'):
+                if structured.get('is_urgent'):
+                    # Urgent → steer toward Priority Booking
+                    answer += (
+                        "\n\n⚡ Since this is urgent, I recommend using **Priority Booking** — "
+                        "our system will automatically match you with the best available worker right away."
+                    )
+                    structured['suggest_priority'] = True
+                else:
+                    # Non-urgent confirmed → fetch matching workers
+                    service_type = structured.get('service_type') or ''
+                    workers = _fetch_recommended_workers(service_type)
     else:
-        # not_configured or provider_error -> safe rule-based answer
         answer = assistant_knowledge.fallback_answer(role, message, context_text)
         source = 'fallback'
 
-    # Final safety net: never return the other party's contact details even if a
-    # model somehow produced them.
     answer = _strip_contact_details(answer)
 
     return success({
         'answer': answer,
         'role': role,
-        'source': source,            # 'ai' or 'fallback' (useful for the UI)
+        'source': source,
         'has_booking_context': bool(context_text),
+        'structured': structured,
+        'workers': workers,
     })
+
+
+def _fetch_recommended_workers(service_type):
+    """Query GSI1 for active workers offering the given service type."""
+    if not service_type:
+        return []
+    try:
+        items = query_items(f'SERVICE#{service_type.lower()}', sk_begins_with='WORKER', index_name='GSI1')
+        workers = []
+        for item in items[:5]:
+            item = decimal_to_float(item)
+            workers.append({
+                'id': item.get('id'),
+                'name': item.get('name'),
+                'rating': item.get('rating'),
+                'hourly_rate': item.get('hourly_rate'),
+                'area': item.get('area'),
+            })
+        return workers
+    except Exception as e:  # noqa: BLE001
+        print(f"[assistant] Worker fetch error: {type(e).__name__}")
+        return []
 
 
 def _build_authorized_context(user_id, role, booking_id):
     """
     Returns a short, REDACTED context string for the given booking ONLY if the
     caller is the booking's customer or assigned worker. Otherwise returns "".
-
     Never includes phone numbers, emails, or addresses of the other party.
     """
     if not booking_id:
@@ -121,22 +157,18 @@ def _build_authorized_context(user_id, role, booking_id):
     customer_id = booking.get('customer_id')
     worker_id = booking.get('worker_id')
 
-    # Ownership / assignment check — the AI is NEVER trusted to do this
     if user_id not in (customer_id, worker_id):
         return ""
 
     booking = decimal_to_float(booking)
 
-    # Only non-sensitive, role-appropriate fields
     parts = [
-        f"Booking context (for this user's own booking):",
+        "Booking context (for this user's own booking):",
         f"- Service: {booking.get('service_name', 'N/A')}",
         f"- Status: {booking.get('status', 'N/A')}",
         f"- Scheduled: {booking.get('scheduled_date', 'N/A')} {booking.get('scheduled_time', '')}".strip(),
     ]
 
-    # The counterparty's NAME is acceptable to show to the assigned party;
-    # contact details are NOT included.
     if role == 'customer':
         parts.append(f"- Assigned technician: {booking.get('worker_name', 'to be assigned')}")
     elif role == 'worker':
@@ -151,15 +183,10 @@ def _build_authorized_context(user_id, role, booking_id):
 
 
 def _strip_contact_details(text):
-    """
-    Defensive redaction: remove anything that looks like a phone number or email
-    from the outgoing answer. This is a safety net; context is already clean.
-    """
+    """Defensive redaction: remove phone numbers and emails from outgoing answer."""
     import re
     if not text:
         return text
-    # Redact emails
     text = re.sub(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}', '[hidden]', text)
-    # Redact long digit sequences (phone numbers), keeping small numbers intact
     text = re.sub(r'(?<!\d)(\+?\d[\d\s\-]{8,}\d)(?!\d)', '[hidden]', text)
     return text

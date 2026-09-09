@@ -409,21 +409,38 @@ export const mockApi = {
 
   // --- AI Assistant (role-aware, rule-based in mock mode) ---
   assistant: {
-    chat: async ({ message, role = 'customer' }) => {
+    chat: async ({ message, role = 'customer', history = [] }) => {
       await delay(600);
       const msg = (message || '').toLowerCase();
+      // Build context from history to handle follow-ups like "still not working"
+      const historyText = history.map((h) => h.content || '').join(' ').toLowerCase();
+      const combined = `${historyText} ${msg}`;
       let answer;
       if (['complaint', 'escalate', 'support', 'human', 'refund'].some((w) => msg.includes(w))) {
         answer = 'I can help you escalate this. You can contact Connect360 support or raise a complaint from your bookings page.';
-      } else if (['status', 'when', 'arrive', 'coming', 'reschedule', 'cancel', 'book'].some((w) => msg.includes(w))) {
+      } else if (['status', 'when', 'arrive', 'coming', 'reschedule', 'cancel'].some((w) => msg.includes(w))) {
         answer = 'Bookings move through: pending → accepted → in progress → completed. You can view the current status on your bookings page.';
-      } else if (msg.includes('ac') || msg.includes('cool')) {
+      } else if (msg.includes('priority') || msg.includes('urgent')) {
+        answer = '⚡ For urgent jobs, use Priority Booking — describe your requirement and our system will automatically match you with the best available worker. You can find it on the booking page.';
+      } else if (msg.includes('ac') || msg.includes('cool') || msg.includes('hvac')) {
         answer = 'Here are some safe steps to try:\n- Set the thermostat to "cool" below room temperature.\n- Clean or replace the air filter.\n- Ensure the outdoor unit has airflow.\n- If it still doesn\'t cool, book an AC technician.';
       } else if (msg.includes('washing') || msg.includes('drain')) {
         answer = role === 'worker'
           ? 'Preparation checklist:\n- Bring drain-cleaning tools, spare filter, and multimeter.\n- Check the model number in the booking notes.'
           : 'Here are some safe steps to try:\n- Check the drain hose for kinks/blockage and clean the filter.\n- Confirm power, water supply, and that the door is latched.';
-      } else if (['service', 'services', 'offer', 'provide', 'price', 'cost'].some((w) => msg.includes(w))) {
+      } else if (combined.includes('tv') || combined.includes('television') || msg.includes('repair') || msg.includes('not working') || msg.includes('appliance')) {
+        if (msg.includes('still') || msg.includes('not fixed') || msg.includes('same')) {
+          answer = 'Since the basic steps didn\'t help, it\'s best to get a professional to look at it. Would you like me to help you book a TV/appliance repair technician?';
+        } else {
+          answer = 'Here are some safe steps to try:\n- Unplug the TV, wait 60 seconds, and plug it back in.\n- Check all cable connections (power, HDMI, antenna).\n- Try a different power outlet.\n- Replace the remote batteries.\n\nIf these don\'t help, I can help you book a repair technician!';
+        }
+      } else if (msg.includes('clean') || msg.includes('household') || msg.includes('house') || msg.includes('sweep') || msg.includes('mop')) {
+        answer = 'Connect360 offers professional home cleaning services including deep cleaning, regular housekeeping, and post-construction cleanup. You can browse available cleaners and book directly from the services page.';
+      } else if (msg.includes('plumb') || msg.includes('pipe') || msg.includes('leak') || msg.includes('tap') || msg.includes('water')) {
+        answer = 'Here are some safe steps to try:\n- For a leak: turn off the local shut-off valve to limit water damage.\n- For a clog: a plunger may help minor blockages.\n- Hidden leaks or no water usually need a plumber.';
+      } else if (msg.includes('electric') || msg.includes('wiring') || msg.includes('switch') || msg.includes('power')) {
+        answer = 'For electrical issues:\n- Check if a breaker has tripped and reset it once.\n- Never open outlets or panels yourself — electrical work is unsafe.\n- Repeated tripping or sparking needs a licensed electrician immediately.';
+      } else if (['service', 'services', 'offer', 'provide', 'price', 'cost', 'book'].some((w) => msg.includes(w))) {
         answer = 'Connect360 offers plumbing, electrical, cleaning, AC/HVAC, painting, carpentry, and appliance repair. You can see each professional\'s hourly rate on their profile.';
       } else if (role === 'worker') {
         answer = 'I can help with your assigned jobs: understanding the requested service, preparation checklists, safe troubleshooting, and completion steps. What do you need?';

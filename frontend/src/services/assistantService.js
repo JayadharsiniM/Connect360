@@ -15,13 +15,14 @@ const isMock = import.meta.env.VITE_MOCK_MODE === 'true';
  */
 export const assistantService = isMock
   ? {
-      chat: ({ message, bookingId, role }) =>
-        mockApi.assistant.chat({ message, role }),
+      chat: ({ message, bookingId, role, history }) =>
+        mockApi.assistant.chat({ message, role, history }),
     }
   : {
-      chat: ({ message, bookingId }) =>
+      chat: ({ message, bookingId, history }) =>
         api.post('/assistant/chat', {
           message,
           ...(bookingId ? { booking_id: bookingId } : {}),
+          ...(history?.length ? { history } : {}),
         }),
     };

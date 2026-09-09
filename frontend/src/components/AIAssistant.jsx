@@ -18,6 +18,7 @@ export default function AIAssistant({ bookingId = null }) {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [history, setHistory] = useState([]);
   const scrollRef = useRef(null);
 
   const role = user?.role || 'customer';
@@ -55,9 +56,18 @@ export default function AIAssistant({ bookingId = null }) {
     setInput('');
     setSending(true);
 
+    const updatedHistory = [...history, { role: 'user', content: question }];
+
     try {
-      const res = await assistantService.chat({ message: question, bookingId, role });
+      const res = await assistantService.chat({ message: question, bookingId, role, history: updatedHistory });
       const answer = res.data?.answer || 'Sorry, I could not process that.';
+      // Store clean text in history (never raw JSON)
+      let historyText = answer;
+      try {
+        const p = JSON.parse(answer);
+        if (p?.reply) historyText = p.reply;
+      } catch (_) {}
+      setHistory([...updatedHistory, { role: 'assistant', content: historyText }]);
       setMessages((m) => [...m, { from: 'bot', text: answer }]);
     } catch (err) {
       setMessages((m) => [
