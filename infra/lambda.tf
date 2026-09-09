@@ -54,9 +54,12 @@ locals {
   })
 
   # Assistant Lambda additionally gets Bedrock AI config (Feature 2).
-  # AI_ENABLED=false by default -> assistant uses rule-based fallback (Rs.0).
+  # AI_PROVIDER="gemini" -> Gemini API; "bedrock" -> Bedrock; "" -> fallback only.
   assistant_env_vars = merge(local.lambda_env_vars, {
-    AI_ENABLED           = var.ai_enabled
+    AI_PROVIDER          = var.ai_provider
+    GEMINI_MODEL         = var.gemini_model
+    GEMINI_SECRET_NAME   = var.gemini_secret_name
+    GEMINI_SECRET_REGION = var.aws_region
     BEDROCK_MODEL_ID     = var.bedrock_model_id
     BEDROCK_REGION       = var.bedrock_region
     AI_MAX_OUTPUT_TOKENS = var.ai_max_output_tokens

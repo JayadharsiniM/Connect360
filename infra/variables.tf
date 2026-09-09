@@ -102,24 +102,37 @@ variable "twilio_api_base" {
 }
 
 # =============================================================================
-# AI Assistant (Amazon Bedrock) - Feature 2
-# AI_ENABLED=false by default -> assistant uses rule-based fallback (Rs.0).
-# Set ai_enabled="true" + a model id + region to enable Bedrock (uses credits).
+# AI Assistant - Feature 2
+# AI_PROVIDER="gemini" -> Gemini API (key from Secrets Manager)
+# AI_PROVIDER="bedrock" -> Amazon Bedrock (Lambda IAM role)
+# AI_PROVIDER="" -> rule-based fallback only (Rs.0)
 # =============================================================================
-variable "ai_enabled" {
-  description = "Enable Bedrock-powered AI assistant (\"true\"/\"false\"). Off = rule-based fallback, Rs.0."
+variable "ai_provider" {
+  description = "AI provider: \"gemini\", \"bedrock\", or \"\" (disabled, rule-based fallback)."
   type        = string
-  default     = "false"
+  default     = ""
+}
+
+variable "gemini_model" {
+  description = "Gemini model name (e.g. gemini-1.5-flash)."
+  type        = string
+  default     = "gemini-3.6-flash"
+}
+
+variable "gemini_secret_name" {
+  description = "Secrets Manager secret name holding the Gemini API key."
+  type        = string
+  default     = "connect360/gemini-api-key"
 }
 
 variable "bedrock_model_id" {
-  description = "Bedrock model id (e.g. amazon.nova-micro-v1:0). Empty keeps AI disabled."
+  description = "Bedrock model id (e.g. amazon.nova-micro-v1:0). Used when ai_provider=bedrock."
   type        = string
   default     = ""
 }
 
 variable "bedrock_region" {
-  description = "AWS region for Bedrock (e.g. us-east-1). Bedrock may not be in ap-south-1 for all models."
+  description = "AWS region for Bedrock (e.g. us-east-1)."
   type        = string
   default     = "us-east-1"
 }
@@ -127,7 +140,7 @@ variable "bedrock_region" {
 variable "ai_max_output_tokens" {
   description = "Max output tokens per assistant response (cost cap)."
   type        = string
-  default     = "400"
+  default     = "600"
 }
 
 # =============================================================================

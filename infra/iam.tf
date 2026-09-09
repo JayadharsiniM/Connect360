@@ -81,10 +81,9 @@ resource "aws_iam_role_policy" "lambda_s3" {
   })
 }
 
-# Bedrock invoke permission for the AI Assistant (Feature 2).
-# Only created when AI is enabled (least privilege) — count=0 keeps it off by default.
+# Bedrock invoke permission — only when ai_provider="bedrock".
 resource "aws_iam_role_policy" "lambda_bedrock" {
-  count = var.ai_enabled == "true" ? 1 : 0
+  count = var.ai_provider == "bedrock" ? 1 : 0
 
   name = "${var.project_name}-bedrock-access"
   role = aws_iam_role.lambda_exec.id
@@ -93,12 +92,28 @@ resource "aws_iam_role_policy" "lambda_bedrock" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect = "Allow"
-        Action = [
-          "bedrock:InvokeModel"
-        ]
-        # Scope to foundation models in the Bedrock region; model id is applied at call time.
+        Effect   = "Allow"
+        Action   = ["bedrock:InvokeModel"]
         Resource = "arn:aws:bedrock:${var.bedrock_region}::foundation-model/*"
+      }
+    ]
+  })
+}
+
+# Secrets Manager read permission for Gemini API key — only when ai_provider="gemini".
+resource "aws_iam_role_policy" "lambda_secrets" {
+  count = var.ai_provider == "gemini" ? 1 : 0
+
+  name = "${var.project_name}-secrets-access"
+  role = aws_iam_role.lambda_exec.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:*:secret:${var.gemini_secret_name}*"
       }
     ]
   })

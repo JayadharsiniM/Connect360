@@ -3,67 +3,78 @@ Connect360 - Assistant Knowledge Base (rule-based fallback + prompt content)
 
 Two jobs:
   1. Provide the SYSTEM PROMPT text (role + rules + capabilities) used when
-     Bedrock AI is enabled.
-  2. Provide a rule-based fallback answer when AI is disabled (Rs.0 mode) or the
-     provider errors, so the assistant always responds usefully.
+     AI is enabled.
+  2. Provide a rule-based fallback answer when AI is disabled or errors.
 
 IMPORTANT:
   - This module does NOT authorize anything and does NOT read the database.
     The Lambda handler injects only already-authorized, already-redacted context.
-  - Troubleshooting guidance here is generic/safe (no dangerous instructions).
 """
 
 # =============================================================================
-# System prompts (used when Bedrock AI is enabled)
+# System prompts
 # =============================================================================
 
 _COMMON_RULES = (
     "You are the Connect360 assistant for a home-services marketplace. "
     "Be concise, friendly, and practical. "
-    "Never reveal phone numbers, emails, addresses, or any personal contact "
-    "details of other users. "
+    "Never reveal phone numbers, emails, addresses, or personal contact details of other users. "
     "Never claim to access data you were not given. "
-    "If you are unsure or the request needs a human, suggest contacting support. "
-    "Do not invent prices; only state pricing if it is provided in the context. "
-    "Only give safe troubleshooting steps; tell users to call a professional for "
-    "anything involving gas, high-voltage, or safety risk."
+    "Do not invent prices. "
+    "Only give safe troubleshooting steps; always recommend a professional for gas, high-voltage, or safety risks."
 )
 
 _CUSTOMER_SCOPE = (
-    "The user is a CUSTOMER. You may help with: understanding their service "
-    "problem, basic safe troubleshooting, choosing the right service category, "
-    "how to book/reschedule/cancel per platform rules, explaining booking status "
-    "(pending/accepted/in_progress/completed), what to prepare before the "
-    "technician arrives, and how to use chat/calling. "
-    "You must NOT reveal other customers' or technicians' private details."
+    "The user is a CUSTOMER. Help with: diagnosing their home service problem, safe basic troubleshooting, "
+    "choosing the right service category, booking guidance, booking status explanation "
+    "(pending/accepted/in_progress/completed), and preparing for the technician's visit."
 )
 
 _WORKER_SCOPE = (
-    "The user is a WORKER (technician). You may help with: understanding the "
-    "customer's requested service for their OWN assigned booking, safe "
-    "troubleshooting/preparation checklists, job completion steps (photos, notes, "
-    "parts used, confirmation), and their own schedule. "
-    "You must NOT reveal other customers' private details or other workers' data."
+    "The user is a WORKER (technician). Help with: understanding the customer's service request for their "
+    "OWN assigned booking, preparation checklists, safe troubleshooting, and job completion steps."
+)
+
+_STRUCTURED_INSTRUCTION = (
+    "\n\nOUTPUT FORMAT — CRITICAL: Every single response MUST be a valid JSON object. No exceptions. No plain text.\n"
+    "Format:\n"
+    "{\"reply\": \"<your message>\", \"structured\": {\"service_type\": \"<service or null>\", "
+    "\"is_urgent\": <true|false>, \"missing_fields\": [\"<field>\", ...], "
+    "\"location\": \"<location or null>\", \"date\": \"<date or null>\", "
+    "\"time\": \"<time or null>\", \"confirmed\": <true|false>}}\n\n"
+    "Rules:\n"
+    "1. When user wants to BOOK a service (e.g. 'I need a plumber', 'need cleaning', 'book electrician'): "
+    "set service_type, then ask for any missing fields one at a time (location, date, time). "
+    "Do NOT give troubleshooting steps when intent is clearly to book.\n"
+    "2. Map common words: 'plumber'→plumbing, 'electrician'→electrical, 'cleaner'→cleaning, "
+    "'carpenter'→carpentry, 'painter'→painting, 'tv/appliance repair'→appliance_repair.\n"
+    "3. Set confirmed=true only when service_type, location, date, AND time are all known.\n"
+    "4. missing_fields lists only what is still needed.\n"
+    "5. For non-booking questions: service_type=null, is_urgent=false, missing_fields=[], confirmed=false.\n"
+    "6. NEVER output plain text. ALWAYS output the JSON object."
+)
+
+_MULTILINGUAL_INSTRUCTION = (
+    "\n\nLANGUAGE: Always reply in the same language the user wrote in. "
+    "Tamil → Tamil, Hindi → Hindi, default English."
 )
 
 
 def build_system_prompt(role):
     scope = _WORKER_SCOPE if role == "worker" else _CUSTOMER_SCOPE
-    return f"{_COMMON_RULES}\n\n{scope}"
+    return f"{_COMMON_RULES}\n\n{scope}{_STRUCTURED_INSTRUCTION}{_MULTILINGUAL_INSTRUCTION}"
 
 
 # =============================================================================
-# Rule-based fallback (used when AI disabled or provider error)
+# Rule-based fallback
 # =============================================================================
 
-# Safe, generic troubleshooting guides keyed by simple keywords.
 _TROUBLESHOOTING = {
     "ac": [
         "Check the thermostat is set to 'cool' and below room temperature.",
         "Clean or replace the air filter — a clogged filter reduces cooling.",
         "Ensure the outdoor unit is not blocked and has airflow.",
-        "If it still doesn't cool, the refrigerant or compressor may need a "
-        "professional — book an AC technician.",
+        "If it still doesn't cool, the refrigerant or compressor may need a professional — book an AC technician.",
     ],
     "refrigerator": [
         "Confirm the temperature dial isn't set too warm.",
@@ -76,10 +87,8 @@ _TROUBLESHOOTING = {
         "No cooling or loud noise usually needs a technician.",
     ],
     "washing machine": [
-        "If it won't drain: check the drain hose for kinks/blockage and clean "
-        "the filter.",
-        "If it won't start: confirm power, water supply, and that the door is "
-        "latched.",
+        "If it won't drain: check the drain hose for kinks/blockage and clean the filter.",
+        "If it won't start: confirm power, water supply, and that the door is latched.",
         "Persistent draining or motor issues need a technician.",
     ],
     "plumbing": [
@@ -96,8 +105,7 @@ _TROUBLESHOOTING = {
 
 _WORKER_PREP = {
     "ac": [
-        "Carry gauge set, cleaning tools, spare filter, and refrigerant if "
-        "certified.",
+        "Carry gauge set, cleaning tools, spare filter, and refrigerant if certified.",
         "Confirm indoor + outdoor unit access with the customer.",
     ],
     "washing machine": [
@@ -115,29 +123,37 @@ _WORKER_PREP = {
 }
 
 
+_TOPIC_ALIASES = {
+    "plumbing": ["plumb", "plumber", "pipe", "leak", "tap", "drain", "water"],
+    "electrical": ["electric", "electrician", "wiring", "wire", "switch", "power", "breaker"],
+    "ac": ["ac ", "a/c", "air condition", "hvac", "cool"],
+    "refrigerator": ["refrigerator", "fridge"],
+    "washing machine": ["washing", "washer", "laundry"],
+}
+
+
 def _match_topic(text, table):
     t = (text or "").lower()
-    for key, steps in table.items():
+    # Direct key match first
+    for key in table:
         if key in t:
-            return key, steps
+            return key, table[key]
+    # Alias match
+    for canonical, aliases in _TOPIC_ALIASES.items():
+        if canonical in table and any(a in t for a in aliases):
+            return canonical, table[canonical]
     return None, None
 
 
 def fallback_answer(role, message, context_text=""):
-    """
-    Produce a helpful rule-based reply without any LLM.
-    Never includes private data (caller passes only safe context_text).
-    """
     msg = (message or "").strip().lower()
 
-    # Escalation intent
     if any(w in msg for w in ("complaint", "escalate", "support", "human", "refund")):
         return (
             "I can help you escalate this. You can contact Connect360 support or "
             "raise a complaint from your bookings page, and our team will follow up."
         )
 
-    # Booking status / process
     if any(w in msg for w in ("status", "when", "arrive", "coming", "reschedule", "cancel", "book")):
         base = (
             "Bookings move through: pending -> accepted -> in progress -> completed. "
@@ -152,7 +168,6 @@ def fallback_answer(role, message, context_text=""):
             )
         return base
 
-    # Troubleshooting / preparation
     if role == "worker":
         key, steps = _match_topic(msg, _WORKER_PREP)
         if steps:
@@ -161,17 +176,13 @@ def fallback_answer(role, message, context_text=""):
     if steps:
         return "Here are some safe steps to try:\n- " + "\n- ".join(steps)
 
-    # Service info
     if any(w in msg for w in ("service", "services", "offer", "provide", "price", "cost", "charge")):
-        text = (
+        return (
             "Connect360 offers home services like plumbing, electrical, cleaning, "
             "AC/HVAC, painting, carpentry, and appliance repair. "
-            "You can browse services and see each professional's hourly rate on "
-            "their profile."
+            "You can browse services and see each professional's hourly rate on their profile."
         )
-        return text
 
-    # Generic help
     if role == "worker":
         return (
             "I can help with your assigned jobs: understanding the requested "
