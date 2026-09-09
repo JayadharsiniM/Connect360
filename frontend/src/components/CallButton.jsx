@@ -2,18 +2,23 @@ import { useState } from 'react';
 import { bookingsService } from '../services/bookingsService';
 
 /**
- * CallButton — masked in-app calling for an active booking.
+ * CallButton — direct-dial calling for an active booking.
  *
- * Number privacy: this component never receives or displays a phone number.
- * It only calls POST /api/bookings/{id}/call and reflects the returned status.
+ * Privacy model:
+ *   - This component NEVER displays a phone number. It shows only a label /
+ *     the callee's name. The number is fetched only to hand it to the device's
+ *     native dialer (tel:) so the user places the call from their own phone.
+ *   - Note: the OS dialer / call history will still show the number (that is
+ *     unavoidable for a self-dialed call). Our app UI never renders it.
  *
  * Props:
  *   bookingId  - the booking to place the call for
  *   status     - current booking status (controls availability)
- *   label      - button text (e.g. "Call Technician" / "Call Customer")
+ *   label      - fallback button text (e.g. "Call Technician" / "Call Customer")
+ *   className  - optional extra classes
  */
-export default function CallButton({ bookingId, status, label }) {
-  const [callState, setCallState] = useState('idle'); // idle | calling | success | unavailable | error
+export default function CallButton({ bookingId, status, label = 'Call', className = '' }) {
+  const [callState, setCallState] = useState('idle'); // idle | connecting | error | unavailable
   const [message, setMessage] = useState('');
 
   const isActive = status === 'accepted' || status === 'in_progress';
@@ -22,21 +27,28 @@ export default function CallButton({ bookingId, status, label }) {
   if (!isActive) return null;
 
   async function handleCall() {
-    if (callState === 'calling') return;
-    setCallState('calling');
+    if (callState === 'connecting') return;
+    setCallState('connecting');
     setMessage('');
     try {
       const res = await bookingsService.initiateCall(bookingId);
-      setCallState('success');
-      setMessage(res.data?.message || 'Connecting your call. Please answer your phone.');
+      const phone = res.data?.phone;
+
+      if (!phone) {
+        setCallState('error');
+        setMessage('No phone number available for this contact.');
+        return;
+      }
+
+      // Open the device's native dialer. The number is used here ONLY to place
+      // the call; it is never shown anywhere in the app UI.
+      setCallState('idle');
+      window.location.href = `tel:${phone}`;
     } catch (err) {
       const code = err.response?.status;
-      if (code === 503) {
-        setCallState('unavailable');
-        setMessage('Calling is not available right now.');
-      } else if (code === 422) {
+      if (code === 422) {
         setCallState('error');
-        setMessage(err.response?.data?.error || 'A phone number is required to call.');
+        setMessage(err.response?.data?.error || 'This contact has no phone number yet.');
       } else if (code === 409) {
         setCallState('unavailable');
         setMessage('Calling is only available for active bookings.');
@@ -45,30 +57,30 @@ export default function CallButton({ bookingId, status, label }) {
         setMessage('You are not allowed to call for this booking.');
       } else {
         setCallState('error');
-        setMessage('Unable to connect the call. Please try again later.');
+        setMessage('Unable to start the call. Please try again.');
       }
     }
   }
 
   return (
-    <div className="flex flex-col items-stretch gap-1">
+    <div className={`flex flex-col items-stretch gap-1 ${className}`}>
       <button
         onClick={handleCall}
-        disabled={callState === 'calling' || callState === 'unavailable'}
+        disabled={callState === 'connecting' || callState === 'unavailable'}
         className={`!py-2 !px-4 text-center whitespace-nowrap flex items-center justify-center gap-1.5 rounded-lg font-hanken text-label-md transition-all ${
           callState === 'unavailable'
             ? 'bg-surface-container text-on-surface-variant cursor-not-allowed'
             : 'bg-secondary-container text-on-secondary hover:opacity-90 active:scale-[0.98]'
         }`}
-        title="Your number stays private"
+        title="Places the call from your phone. Their number stays hidden in the app."
       >
         <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-          {callState === 'calling' ? 'ring_volume' : callState === 'success' ? 'phone_in_talk' : 'call'}
+          {callState === 'connecting' ? 'ring_volume' : 'call'}
         </span>
-        {callState === 'calling' ? 'Connecting…' : callState === 'success' ? 'Calling' : label}
+        {callState === 'connecting' ? 'Opening dialer…' : label}
       </button>
 
-      {/* Status / privacy hint */}
+      {/* Status / privacy hint — never shows a number */}
       {message ? (
         <p
           className={`font-hanken text-label-sm ${
@@ -80,7 +92,7 @@ export default function CallButton({ bookingId, status, label }) {
       ) : (
         <p className="font-hanken text-label-sm text-on-surface-variant flex items-center gap-1">
           <span className="material-symbols-outlined text-[13px]">lock</span>
-          Number stays private
+          Number stays hidden in-app
         </p>
       )}
     </div>
