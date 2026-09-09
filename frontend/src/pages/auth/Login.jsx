@@ -106,6 +106,45 @@ export default function Login() {
           </button>
         </form>
 
+        {/* Quick Demo Logins */}
+        <div className="border-t border-outline-variant/60 pt-3 flex flex-col gap-2">
+          <p className="font-hanken text-[11px] uppercase tracking-wider text-on-surface-variant font-bold text-center">
+            Quick Demo Logins
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('customer1@demo.com');
+                setPassword('Demo@1234');
+              }}
+              className="py-2 px-2 bg-surface-container-low hover:bg-blue-50 hover:border-blue-300 border border-outline-variant rounded-lg text-xs font-bold text-primary transition-colors text-center"
+            >
+              Customer
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('worker1@demo.com');
+                setPassword('Demo@1234');
+              }}
+              className="py-2 px-2 bg-surface-container-low hover:bg-blue-50 hover:border-blue-300 border border-outline-variant rounded-lg text-xs font-bold text-primary transition-colors text-center"
+            >
+              Worker
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail('admin@connect360.com');
+                setPassword('Demo@1234');
+              }}
+              className="py-2 px-2 bg-surface-container-low hover:bg-blue-50 hover:border-blue-300 border border-outline-variant rounded-lg text-xs font-bold text-primary transition-colors text-center"
+            >
+              Admin
+            </button>
+          </div>
+        </div>
+
         {/* Footer */}
         <p className="font-hanken text-body-sm text-on-surface-variant text-center">
           Don't have an account?{' '}

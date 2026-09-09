@@ -348,6 +348,13 @@ resource "aws_api_gateway_resource" "bookings_id_call" {
   path_part   = "call"
 }
 
+# /api/bookings/{id}/location (real-time worker GPS tracking)
+resource "aws_api_gateway_resource" "bookings_id_location" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.bookings_id.id
+  path_part   = "location"
+}
+
 resource "aws_api_gateway_resource" "worker_bookings" {
   rest_api_id = aws_api_gateway_rest_api.main.id
   parent_id   = aws_api_gateway_resource.worker.id
@@ -469,6 +476,42 @@ resource "aws_api_gateway_integration" "bookings_id_call_post" {
   rest_api_id             = aws_api_gateway_rest_api.main.id
   resource_id             = aws_api_gateway_resource.bookings_id_call.id
   http_method             = aws_api_gateway_method.bookings_id_call_post.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# PUT /api/bookings/{id}/location (real-time worker GPS stream)
+resource "aws_api_gateway_method" "bookings_id_location_put" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.bookings_id_location.id
+  http_method   = "PUT"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "bookings_id_location_put" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.bookings_id_location.id
+  http_method             = aws_api_gateway_method.bookings_id_location_put.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# GET /api/bookings/{id}/location (customer fetch latest position & route)
+resource "aws_api_gateway_method" "bookings_id_location_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.bookings_id_location.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "bookings_id_location_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.bookings_id_location.id
+  http_method             = aws_api_gateway_method.bookings_id_location_get.http_method
   type                    = "AWS_PROXY"
   integration_http_method = "POST"
   uri                     = aws_lambda_function.bookings.invoke_arn
@@ -924,6 +967,7 @@ locals {
     bookings_id                  = aws_api_gateway_resource.bookings_id.id
     bookings_id_cancel           = aws_api_gateway_resource.bookings_id_cancel.id
     bookings_id_call             = aws_api_gateway_resource.bookings_id_call.id
+    bookings_id_location         = aws_api_gateway_resource.bookings_id_location.id
     worker_bookings              = aws_api_gateway_resource.worker_bookings.id
     worker_bookings_id           = aws_api_gateway_resource.worker_bookings_id.id
     worker_bookings_id_respond   = aws_api_gateway_resource.worker_bookings_id_respond.id
@@ -1031,6 +1075,8 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.bookings_id_get,
     aws_api_gateway_integration.bookings_id_cancel_put,
     aws_api_gateway_integration.bookings_id_call_post,
+    aws_api_gateway_integration.bookings_id_location_put,
+    aws_api_gateway_integration.bookings_id_location_get,
     aws_api_gateway_integration.worker_bookings_get,
     aws_api_gateway_integration.worker_bookings_id_get,
     aws_api_gateway_integration.worker_bookings_id_respond_put,

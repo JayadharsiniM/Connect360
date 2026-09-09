@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { bookingsService } from '../../services/bookingsService';
 import StatusBadge from '../../components/StatusBadge';
 import CallButton from '../../components/CallButton';
@@ -104,6 +105,15 @@ export default function WorkerBookings() {
             <span className="material-symbols-outlined text-[16px]">task_alt</span>
             Mark Complete
           </button>
+        )}
+        {(booking.booking_type === 'priority' || String(id).startsWith('pri-')) && (
+          <Link
+            to="/worker/priority-requests"
+            className="btn-secondary !py-2 !px-3 flex items-center gap-1 !text-blue-600 !border-blue-200 hover:!bg-blue-50 text-xs font-bold"
+          >
+            <span className="material-symbols-outlined text-[16px] text-blue-600">near_me</span>
+            <span>GPS Radar</span>
+          </Link>
         )}
       </>
     );
