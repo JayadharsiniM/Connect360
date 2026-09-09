@@ -30,21 +30,35 @@ from datetime import datetime
 # Configuration - single source of truth for weights & tunables.
 # Change here to re-tune matching; nothing else needs editing.
 # =============================================================================
-MATCHING_WEIGHTS = {
-    "availability": 0.30,
-    "service": 0.20,
-    "distance": 0.20,
-    "rating": 0.15,
-    "experience": 0.10,
-    "budget": 0.05,
+# Normal booking: scheduled, customer picks date/time — skill & trust matter most
+NORMAL_BOOKING_WEIGHTS = {
+    "service":      0.30,
+    "trust":        0.25,
+    "experience":   0.15,
+    "availability": 0.15,
+    "reliability":  0.10,
+    "distance":     0.05,
 }
 
-# Tunables (kept out of business logic / not hard-coded at call sites)
-EXPERIENCE_CAP_YEARS = 10       # experience normalized against this cap
-MAX_RATING = 5.0                # rating scale
-DISTANCE_FULL_SCORE_KM = 2.0    # <= this distance scores 1.0
-DISTANCE_ZERO_SCORE_KM = 25.0   # >= this distance scores 0.0
-NEUTRAL_SCORE = 0.5             # used when a signal is unavailable
+# Priority booking: urgent/immediate — availability & proximity matter most
+PRIORITY_BOOKING_WEIGHTS = {
+    "availability": 0.30,
+    "distance":     0.25,
+    "service":      0.20,
+    "trust":        0.15,
+    "reliability":  0.05,
+    "experience":   0.05,
+}
+
+# Legacy alias so existing callers that pass weights=None still work
+MATCHING_WEIGHTS = PRIORITY_BOOKING_WEIGHTS
+
+# Tunables
+EXPERIENCE_CAP_YEARS = 10
+MAX_RATING = 5.0
+DISTANCE_FULL_SCORE_KM = 2.0
+DISTANCE_ZERO_SCORE_KM = 25.0
+NEUTRAL_SCORE = 0.5
 
 # Day-of-week name -> int (matches worker AVAIL day_of_week: 0=Sunday..6=Saturday)
 _WEEKDAY_TO_DOW = {
@@ -154,50 +168,40 @@ def calculate_distance_score(worker, request):
     return NEUTRAL_SCORE
 
 
-def calculate_rating_score(worker, request=None):
-    """Rating normalized against MAX_RATING. New workers (no rating) -> neutral-ish."""
+def calculate_trust_score(worker, request=None):
+    """
+    Trust = rating quality + verification status.
+    Verified workers get a 0.2 bonus on top of their normalized rating.
+    Unrated but verified workers score 0.6 (neutral + verification bonus).
+    """
     rating = float(worker.get("rating_avg", 0) or 0)
     count = int(worker.get("rating_count", 0) or 0)
+    is_verified = bool(worker.get("is_verified", False))
+    verification_bonus = 0.2 if is_verified else 0.0
     if count == 0:
-        return NEUTRAL_SCORE  # unrated worker isn't punished to zero
-    return _clamp01(rating / MAX_RATING)
+        return _clamp01(NEUTRAL_SCORE + verification_bonus)
+    return _clamp01(rating / MAX_RATING + verification_bonus)
+
+
+def calculate_reliability_score(worker, request=None):
+    """
+    Reliability = completed bookings ratio.
+    Uses completed_bookings / total_bookings if available on the worker dict.
+    Falls back to rating_count as a proxy (more reviews = more completed jobs).
+    """
+    completed = int(worker.get("completed_bookings", 0) or 0)
+    total = int(worker.get("total_bookings", 0) or 0)
+    if total > 0:
+        return _clamp01(completed / total)
+    # Proxy: cap at 20 reviews for full score
+    review_count = int(worker.get("rating_count", 0) or 0)
+    return _clamp01(review_count / 20.0)
 
 
 def calculate_experience_score(worker, request=None):
     """Experience normalized against EXPERIENCE_CAP_YEARS."""
     years = int(worker.get("experience_years", 0) or 0)
     return _clamp01(years / float(EXPERIENCE_CAP_YEARS))
-
-
-def calculate_budget_score(worker, request):
-    """
-    Budget compatibility using the worker's hourly_rate against the requested
-    budget window. If no budget provided -> neutral (don't filter on price).
-
-    Estimated cost uses duration_hours (default 1). Within budget -> 1.0,
-    above max -> linear penalty, below min -> still fine (cheaper is ok).
-    """
-    budget_min = request.get("budget_min")
-    budget_max = request.get("budget_max")
-    if budget_max is None:
-        return NEUTRAL_SCORE
-
-    rate = float(worker.get("hourly_rate", 0) or 0)
-    duration = float(request.get("duration_hours", 1) or 1)
-    est_cost = rate * duration
-
-    try:
-        budget_max = float(budget_max)
-    except (TypeError, ValueError):
-        return NEUTRAL_SCORE
-
-    if est_cost <= budget_max:
-        return 1.0
-    if budget_max <= 0:
-        return 0.0
-    # Over budget: penalize proportionally, floor at 0
-    overage = (est_cost - budget_max) / budget_max
-    return _clamp01(1.0 - overage)
 
 
 # =============================================================================
@@ -213,11 +217,11 @@ def calculate_final_score(worker, request, weights=None):
 
     components = {
         "availability": calculate_availability_score(worker, request),
-        "service": calculate_service_score(worker, request),
-        "distance": calculate_distance_score(worker, request),
-        "rating": calculate_rating_score(worker, request),
-        "experience": calculate_experience_score(worker, request),
-        "budget": calculate_budget_score(worker, request),
+        "service":      calculate_service_score(worker, request),
+        "distance":     calculate_distance_score(worker, request),
+        "trust":        calculate_trust_score(worker, request),
+        "experience":   calculate_experience_score(worker, request),
+        "reliability":  calculate_reliability_score(worker, request),
     }
 
     final = sum(components[k] * w.get(k, 0.0) for k in components)

@@ -223,7 +223,8 @@ def _run_match_and_offer(booking, attempted):
         'budget_max': booking.get('budget_max'),
     }
 
-    result = matching_service.match(request, _PROVIDER, attempted_worker_ids=attempted)
+    result = matching_service.match(request, _PROVIDER, attempted_worker_ids=attempted,
+                                     weights=matching_service.PRIORITY_BOOKING_WEIGHTS)
     best = result['best']
 
     booking_id = booking['id']
