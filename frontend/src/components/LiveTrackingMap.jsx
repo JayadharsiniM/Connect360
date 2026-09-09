@@ -129,7 +129,13 @@ export default function LiveTrackingMap({
         zIndexOffset: 500,
       }).addTo(map);
     }
-  }, [customerLocation, customerLabel, isWorkerPerspective, mapReady]);
+
+    // When there is no worker route yet, keep the customer centered so an
+    // address-preview map (e.g. the booking form) follows the typed address.
+    if (!workerLocation || !workerLocation.latitude || !workerLocation.longitude) {
+      map.setView([lat, lng], Math.max(map.getZoom(), 14), { animate: true });
+    }
+  }, [customerLocation, customerLabel, isWorkerPerspective, workerLocation, mapReady]);
 
   // Update Worker Marker & Recalculate Turn-by-Turn Road Route
   const updateRoute = useCallback(async (workerLat, workerLng, custLat, custLng) => {

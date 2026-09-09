@@ -70,9 +70,10 @@ export default function PriorityBookings() {
     let isCancelled = false;
 
     async function resolveCoords() {
-      const addr = activeBooking.address || 'Chennai, Tamil Nadu';
+      const addr = activeBooking.address;
+      if (!addr) return;
       const coords = await geocodeAddress(addr);
-      if (!isCancelled) {
+      if (!isCancelled && coords) {
         setCustomerLocation({
           lat: coords.lat,
           lng: coords.lng,
@@ -97,20 +98,15 @@ export default function PriorityBookings() {
       try {
         const res = await bookingsService.getLocation(bookingId);
         if (isCancelled) return;
-        if (res.data?.location && res.data.location.latitude && res.data.location.longitude) {
-          setWorkerLocation(res.data.location);
+        const loc = res.data?.location;
+        if (loc && loc.latitude && loc.longitude) {
+          // Real worker GPS from the backend tracking stream
+          setWorkerLocation(loc);
           setHasGpsSignal(true);
-        } else if (customerLocation?.lat) {
-          // If worker hasn't pinged GPS yet, set initial nearby origin for road route preview
-          setWorkerLocation((prev) => {
-            if (prev) return prev;
-            return {
-              latitude: customerLocation.lat + 0.011,
-              longitude: customerLocation.lng - 0.013,
-              heading: 45,
-              speed: 30,
-            };
-          });
+        } else {
+          // No real GPS yet — do NOT fabricate a worker position.
+          setWorkerLocation(null);
+          setHasGpsSignal(false);
         }
       } catch (err) {
         console.warn('Live location poll note:', err);
@@ -125,7 +121,7 @@ export default function PriorityBookings() {
       isCancelled = true;
       clearInterval(locationPollRef.current);
     };
-  }, [activeBooking?.booking_id, activeBooking?.id, customerLocation?.lat, customerLocation?.lng]);
+  }, [activeBooking?.booking_id, activeBooking?.id]);
 
   async function handleRematch(id) {
     setActionId(id);
@@ -152,9 +148,9 @@ export default function PriorityBookings() {
     }
   }
 
-  // Real ETA and route distance from routing service
-  const etaMinutes = routeMetrics?.durationMinutes ?? 5;
-  const distanceKm = routeMetrics?.distanceKm ?? '1.8';
+  // Real ETA and route distance from the routing service (null until computed)
+  const etaMinutes = routeMetrics?.durationMinutes ?? null;
+  const distanceKm = routeMetrics?.distanceKm ?? null;
 
   return (
     <DashboardLayout>
@@ -244,7 +240,7 @@ export default function PriorityBookings() {
                       </span>
                     </div>
                     <span className="font-mono text-[11px] opacity-90">
-                      ETA: ~{etaMinutes} min
+                      {etaMinutes != null ? `ETA: ~${etaMinutes} min` : 'ETA: calculating…'}
                     </span>
                   </div>
 
@@ -265,8 +261,10 @@ export default function PriorityBookings() {
                         </h2>
                       </div>
                       <div className="text-right">
-                        <div className="text-xl font-black text-slate-900">${activeBooking.total_amount || 125}</div>
-                        <span className="text-[10px] text-emerald-600 font-bold">Guaranteed Rate</span>
+                        <div className="text-xl font-black text-slate-900">
+                          {activeBooking.total_amount ? `$${activeBooking.total_amount}` : '—'}
+                        </div>
+                        <span className="text-[10px] text-emerald-600 font-bold">Estimated Total</span>
                       </div>
                     </div>
 
@@ -309,14 +307,21 @@ export default function PriorityBookings() {
                           <div>
                             <div className="flex items-center gap-1.5 font-extrabold text-sm text-slate-900">
                               <span>{activeBooking.worker.full_name}</span>
-                              <span className="text-amber-500 text-xs">★ {activeBooking.worker.rating_avg || 4.9}</span>
+                              {activeBooking.worker.rating_avg ? (
+                                <span className="text-amber-500 text-xs">★ {activeBooking.worker.rating_avg}</span>
+                              ) : null}
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              Verified Technician • 98% Match Score
+                              Verified Technician
+                              {activeBooking.match_score
+                                ? ` • ${activeBooking.match_score}% Match Score`
+                                : ''}
                             </div>
-                            <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
-                              Arrival Window: ≤ 15 minutes
-                            </div>
+                            {etaMinutes != null && (
+                              <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                                Arrival Window: ~{etaMinutes} min
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -353,7 +358,7 @@ export default function PriorityBookings() {
                       <div className="flex items-start justify-between">
                         <span className="text-slate-400 font-bold uppercase text-[10px]">Location:</span>
                         <span className="text-slate-800 font-semibold text-right max-w-xs truncate">
-                          {activeBooking.address || '1204 E Pine St, Seattle'}
+                          {activeBooking.address || 'Address on file'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -435,7 +440,7 @@ export default function PriorityBookings() {
 
             {/* RIGHT COLUMN: Live Interactive Leaflet Map with Real Road Routing */}
             <div className="lg:col-span-7 relative h-[560px] bg-slate-100 rounded-2xl border border-outline-slate overflow-hidden shadow-elevation-md">
-              {customerLocation && workerLocation ? (
+              {customerLocation ? (
                 <LiveTrackingMap
                   workerLocation={workerLocation}
                   customerLocation={customerLocation}
@@ -447,7 +452,18 @@ export default function PriorityBookings() {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-3">
                   <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-bold font-manrope">Acquiring GPS & Road Route Telemetry...</span>
+                  <span className="text-xs font-bold font-manrope">Resolving your service location…</span>
+                </div>
+              )}
+
+              {/* Overlay hint when we have the customer location but the worker
+                  has not started broadcasting real GPS yet. */}
+              {customerLocation && !workerLocation && isEnRoute && (
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-[900] flex justify-center pointer-events-none">
+                  <div className="bg-white/95 backdrop-blur border border-slate-200 rounded-xl px-4 py-2 shadow-md text-xs font-bold text-slate-700 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    Waiting for the worker to share live GPS…
+                  </div>
                 </div>
               )}
 
@@ -459,7 +475,9 @@ export default function PriorityBookings() {
                 </span>
                 <span className="text-xs font-bold text-slate-800">
                   {isEnRoute
-                    ? `Technician En Route • ~${etaMinutes} mins away (${distanceKm} km)`
+                    ? etaMinutes != null
+                      ? `Technician En Route • ~${etaMinutes} mins away (${distanceKm} km)`
+                      : 'Technician En Route • acquiring live route…'
                     : 'Dispatch Radar Active • High priority status'}
                 </span>
                 {hasGpsSignal && (

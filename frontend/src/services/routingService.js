@@ -73,6 +73,40 @@ export async function geocodeAddress(address, fallbackCity = 'chennai') {
 }
 
 /**
+ * Reverse-geocode real device coordinates into a human-readable address.
+ * Uses Nominatim (OpenStreetMap). Returns { address, lat, lng } or null.
+ */
+export async function reverseGeocode(lat, lng) {
+  const latF = parseFloat(lat);
+  const lngF = parseFloat(lng);
+  if (isNaN(latF) || isNaN(lngF)) return null;
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${latF}&lon=${lngF}&format=json`,
+      {
+        headers: {
+          'Accept-Language': 'en',
+          'User-Agent': 'Connect360-Service-Marketplace',
+        },
+      }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.display_name) {
+        const coords = { address: data.display_name, lat: latF, lng: lngF };
+        // Prime the forward-geocode cache so a later lookup is instant.
+        geocodeCache.set(data.display_name.trim(), { lat: latF, lng: lngF, displayName: data.display_name });
+        return coords;
+      }
+    }
+  } catch (err) {
+    console.warn('Reverse geocoding warning:', err);
+  }
+  return null;
+}
+
+/**
  * Compute real road routing between origin (worker) and destination (customer).
  * Returns turn-by-turn road polyline points [[lat, lng], ...], distance in km, and ETA in minutes.
  */
@@ -113,10 +147,11 @@ export async function getRoadRoute(originLat, originLng, destLat, destLng) {
       if (googleRes.ok) {
         const data = await googleRes.json();
         const route = data.routes?.[0];
-        if (route) {
-          const meters = route.distanceMeters || 1000;
-          const seconds = parseInt(route.duration?.replace('s', '') || '300', 10);
-          const decoded = decodePolyline(route.polyline?.encodedPolyline || '');
+        const decoded = decodePolyline(route?.polyline?.encodedPolyline || '');
+        // Only trust a Google result that has real geometry + metrics.
+        if (route && decoded.length > 0 && route.distanceMeters != null && route.duration != null) {
+          const meters = route.distanceMeters;
+          const seconds = parseInt(String(route.duration).replace('s', ''), 10);
 
           const result = {
             coordinates: decoded,
@@ -145,8 +180,8 @@ export async function getRoadRoute(originLat, originLng, destLat, destLng) {
         const route = data.routes[0];
         // GeoJSON coordinates are [lon, lat] -> convert to Leaflet [lat, lon]
         const latLngs = route.geometry.coordinates.map(([lon, lat]) => [lat, lon]);
-        const meters = route.distance || 1000;
-        const seconds = route.duration || 300;
+        const meters = route.distance;
+        const seconds = route.duration;
 
         const result = {
           coordinates: latLngs,
@@ -162,18 +197,10 @@ export async function getRoadRoute(originLat, originLng, destLat, destLng) {
     console.error('OSRM route calculation error:', err);
   }
 
-  // Fallback: interpolate points along the road corridor
-  const dist = haversineDistance(oLat, oLng, dLat, dLng);
-  return {
-    coordinates: [
-      [oLat, oLng],
-      [(oLat + dLat) / 2 + 0.002, (oLng + dLng) / 2 - 0.002],
-      [dLat, dLng],
-    ],
-    distanceKm: dist.toFixed(1),
-    durationMinutes: Math.max(2, Math.round((dist / 30) * 60)), // 30 km/h avg speed
-    source: 'fallback-corridor',
-  };
+  // Both real routing providers failed. Do NOT fabricate a straight-line or
+  // synthetic-corridor route with a made-up ETA. Return null so the UI can
+  // show a "route unavailable" state instead of fake road geometry.
+  return null;
 }
 
 /**
