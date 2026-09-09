@@ -249,6 +249,9 @@ def list_workers(event):
 def get_recommended_workers(event):
     """GET /api/workers/recommended - Recommendation engine."""
     service_id = get_query_param(event, 'service_id')
+    scheduled_date = get_query_param(event, 'scheduled_date')
+    scheduled_time = get_query_param(event, 'scheduled_time')
+    city = get_query_param(event, 'city')
     limit = int(get_query_param(event, 'limit', '5'))
 
     if service_id:
@@ -258,32 +261,39 @@ def get_recommended_workers(event):
         items = query_items('ROLE#worker', index_name='GSI1')
         worker_ids = [item.get('id') for item in items if item.get('id')]
 
-    # Build profiles and score
     workers = []
     for wid in worker_ids:
         worker = _build_worker_summary(wid)
         if worker and worker.get('is_verified'):
-            # Scoring algorithm
-            rating = float(worker.get('rating_avg', 0))
-            exp = min(int(worker.get('experience_years', 0)), 10)
-            reviews = min(int(worker.get('rating_count', 0)), 50)
-            available = 1 if worker.get('is_available') else 0
-
-            score = (rating / 5.0) * 40 + (exp / 10.0) * 25 + (reviews / 50.0) * 20 + available * 15
-            worker['recommendation_score'] = round(score, 1)
             workers.append(worker)
 
-    # Sort by score desc, limit
-    workers.sort(key=lambda w: w['recommendation_score'], reverse=True)
-    workers = workers[:limit]
-    for i, w in enumerate(workers):
+    # Build request context for the scoring engine
+    request = {
+        'service_id': service_id,
+        'scheduled_date': scheduled_date or '',
+        'scheduled_time': scheduled_time or '',
+        'city': city or '',
+    }
+
+    import matching_service
+    ranked = matching_service.rank_workers(workers, request, matching_service.NORMAL_BOOKING_WEIGHTS)
+
+    result = []
+    for i, entry in enumerate(ranked[:limit]):
+        w = entry['worker']
+        w['recommendation_score'] = entry['score_pct']
         w['rank'] = i + 1
+        w['match_reason'] = entry['match_reason']
+        result.append(w)
 
     return success({
-        'workers': workers,
-        'count': len(workers),
-        'algorithm': 'rule_based_scoring_v1',
-        'scoring': {'rating_weight': 40, 'experience_weight': 25, 'review_count_weight': 20, 'availability_bonus': 15},
+        'workers': result,
+        'count': len(result),
+        'algorithm': 'normal_booking_weighted_v2',
+        'scoring': {
+            'service_weight': 30, 'trust_weight': 25, 'experience_weight': 15,
+            'availability_weight': 15, 'reliability_weight': 10, 'distance_weight': 5,
+        },
     })
 
 
