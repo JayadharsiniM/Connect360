@@ -206,8 +206,18 @@ def _invoke(method, resource, sub, role, path_id=None, body=None):
     return resp["statusCode"], parsed, resp.get("body") or ""
 
 
+def _future_tuesday():
+    today = datetime.now(timezone.utc).date()
+    days_ahead = 1
+    while True:
+        candidate = today + timedelta(days=days_ahead)
+        if (candidate.weekday() + 1) % 7 == 2:
+            return candidate.strftime("%Y-%m-%d")
+        days_ahead += 1
+
+
 def _create(body=None):
-    b = {"service_id": "s1", "address": "12 Main St, Chennai", "scheduled_date": "2026-09-08",
+    b = {"service_id": "s1", "address": "12 Main St, Chennai", "scheduled_date": _future_tuesday(),
          "scheduled_time": "10:00", "budget_min": 200, "budget_max": 1000}
     if body:
         b.update(body)
@@ -386,6 +396,65 @@ class TestManualRegression(unittest.TestCase):
         booking = _get_item(f"BOOKING#{resp['booking_id']}", "METADATA")
         self.assertEqual(booking["booking_type"], "manual")
         self.assertEqual(booking["status"], "pending")
+
+
+class TestLiveLocationTracking(unittest.TestCase):
+    """Real live tracking: worker GPS streaming (PUT) & customer location fetch (GET)."""
+
+    def setUp(self):
+        _seed()
+        code, resp, _ = _create()
+        self.assertEqual(code, 201)
+        self.bid = resp["booking_id"]
+        # Worker 1 accepts the request
+        acode, _, _ = _invoke("POST", "/api/priority/{id}/accept", W1_SUB, "worker", path_id=self.bid)
+        self.assertEqual(acode, 200)
+
+    def test_worker_can_stream_location(self):
+        loc = {
+            "latitude": 13.0827,
+            "longitude": 80.2707,
+            "heading": 85.5,
+            "speed": 38.2,
+            "accuracy": 4.5,
+        }
+        code, resp, _ = _invoke("PUT", "/api/bookings/{id}/location", W1_SUB, "worker", path_id=self.bid, body=loc)
+        self.assertEqual(code, 200)
+        self.assertTrue(resp["success"])
+        self.assertEqual(resp["location"]["latitude"], 13.0827)
+        self.assertEqual(resp["location"]["longitude"], 80.2707)
+
+    def test_customer_can_read_location(self):
+        # Stream location as worker first
+        loc = {"latitude": 13.0827, "longitude": 80.2707, "heading": 90, "speed": 40}
+        _invoke("PUT", "/api/bookings/{id}/location", W1_SUB, "worker", path_id=self.bid, body=loc)
+
+        # Read as customer
+        code, resp, _ = _invoke("GET", "/api/bookings/{id}/location", CUST_SUB, "customer", path_id=self.bid)
+        self.assertEqual(code, 200)
+        self.assertEqual(resp["booking_id"], self.bid)
+        self.assertEqual(resp["status"], "accepted")
+        self.assertIsNotNone(resp["location"])
+        self.assertEqual(resp["location"]["latitude"], 13.0827)
+        self.assertEqual(resp["location"]["longitude"], 80.2707)
+        self.assertEqual(resp["destination_address"], "12 Main St, Chennai")
+
+    def test_stranger_cannot_update_location(self):
+        loc = {"latitude": 13.0827, "longitude": 80.2707}
+        code, _, _ = _invoke("PUT", "/api/bookings/{id}/location", STRANGER_SUB, "worker", path_id=self.bid, body=loc)
+        self.assertEqual(code, 403)
+
+    def test_stranger_cannot_read_location(self):
+        code, _, _ = _invoke("GET", "/api/bookings/{id}/location", STRANGER_SUB, "customer", path_id=self.bid)
+        self.assertEqual(code, 403)
+
+    def test_invalid_coordinates_rejected(self):
+        # Missing longitude
+        code, _, _ = _invoke("PUT", "/api/bookings/{id}/location", W1_SUB, "worker", path_id=self.bid, body={"latitude": 13.0827})
+        self.assertEqual(code, 400)
+        # Non-numeric latitude
+        code, _, _ = _invoke("PUT", "/api/bookings/{id}/location", W1_SUB, "worker", path_id=self.bid, body={"latitude": "invalid", "longitude": 80.2707})
+        self.assertEqual(code, 400)
 
 
 if __name__ == "__main__":

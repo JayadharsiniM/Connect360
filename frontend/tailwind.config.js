@@ -103,6 +103,32 @@ export default {
         'level-1': '0 1px 4px rgba(0, 0, 0, 0.02)',
         'level-2': '0 2px 8px rgba(0, 0, 0, 0.04)',
         'level-3': '0 4px 16px rgba(0, 0, 0, 0.08)',
+        'elevation-sm': '0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04)',
+        'elevation-md': '0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05)',
+        'elevation-lg': '0 10px 25px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04)',
+        'elevation-xl': '0 20px 30px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
+        'amber-glow': '0 8px 24px -4px rgba(245, 158, 11, 0.35)',
+        'blue-glow': '0 8px 20px -4px rgba(37, 99, 235, 0.28)',
+      },
+      keyframes: {
+        pulseGlow: {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%': { transform: 'scale(1.15)', opacity: '0.7' },
+        },
+        radarPing: {
+          '0%': { transform: 'scale(0.8)', opacity: '0.85' },
+          '100%': { transform: 'scale(2.5)', opacity: '0' },
+        },
+        pulseRing: {
+          '0%': { transform: 'scale(0.95)', opacity: '0.8' },
+          '50%': { transform: 'scale(1.15)', opacity: '0.3' },
+          '100%': { transform: 'scale(0.95)', opacity: '0.8' },
+        },
+      },
+      animation: {
+        'radar-pulse': 'radarPing 2.5s cubic-bezier(0, 0, 0.2, 1) infinite',
+        'pulse-subtle': 'pulseGlow 2s ease-in-out infinite',
+        'pulse-ring': 'pulseRing 2s infinite ease-in-out',
       },
     },
   },

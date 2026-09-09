@@ -10,6 +10,7 @@ from decimal import Decimal
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'shared'))
 
+from datetime import datetime, timezone, timedelta
 from db import (put_item, get_item, update_item, query_items, query_all,
                 generate_id, now_iso, decimal_to_float)
 from response import success, created, error, not_found, forbidden, server_error
@@ -45,6 +46,11 @@ def lambda_handler(event, context):
             return get_worker_reviews(event)
         elif method == 'POST' and '/bookings/{id}/call' in resource:
             return initiate_call(event)
+        # ---- Real GPS Live Tracking ----
+        elif method == 'PUT' and '/bookings/{id}/location' in resource:
+            return update_booking_location(event)
+        elif method == 'GET' and '/bookings/{id}/location' in resource:
+            return get_booking_location(event)
         # ---- Priority Booking (Feature 3) — delegated to priority_handler ----
         elif method == 'POST' and resource == '/api/bookings/priority':
             return priority_handler.create_priority_booking(event)
@@ -483,3 +489,106 @@ def initiate_call(event):
 
     # STATUS_PROVIDER_ERROR or anything unexpected — safe generic message
     return error('Unable to connect the call. Please try again later.', status_code=502)
+
+
+def update_booking_location(event):
+    """PUT /api/bookings/{id}/location - Worker broadcasts real GPS"""
+    role = get_user_role(event)
+    if role != 'worker':
+        return forbidden('Only assigned workers can update location')
+
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return not_found('User not found')
+
+    booking_id = get_path_param(event, 'id')
+    booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
+    if not booking:
+        return not_found('Booking not found')
+
+    if booking.get('worker_id') != worker_id:
+        return forbidden('You are not assigned to this booking')
+
+    body = get_body(event)
+    lat = body.get('latitude')
+    lng = body.get('longitude')
+    if lat is None or lng is None:
+        return error('latitude and longitude are required')
+
+    try:
+        lat_f = float(lat)
+        lng_f = float(lng)
+        heading_f = float(body.get('heading') or 0)
+        speed_f = float(body.get('speed') or 0)
+        acc_f = float(body.get('accuracy') or 0)
+    except (ValueError, TypeError):
+        return error('latitude, longitude, heading, speed and accuracy must be valid numbers')
+
+    from db import activity_table
+    now = now_iso()
+    ttl = int((datetime.now(timezone.utc) + timedelta(days=7)).timestamp())
+
+    tracking_item = {
+        'PK': f'TRACKING#{booking_id}',
+        'SK': 'LATEST',
+        'booking_id': booking_id,
+        'worker_id': worker_id,
+        'latitude': lat_f,
+        'longitude': lng_f,
+        'heading': heading_f,
+        'speed': speed_f,
+        'accuracy': acc_f,
+        'timestamp': body.get('timestamp') or now,
+        'updated_at': now,
+        'TTL': ttl,
+    }
+    put_item(tracking_item, table_ref=activity_table)
+
+    return success({
+        'success': True,
+        'message': 'Location updated successfully',
+        'status': 'recorded',
+        'booking_id': booking_id,
+        'location': {
+            'latitude': lat_f,
+            'longitude': lng_f,
+            'heading': heading_f,
+            'speed': speed_f,
+            'accuracy': acc_f,
+            'timestamp': body.get('timestamp') or now,
+        },
+        'timestamp': now,
+    })
+
+
+def get_booking_location(event):
+    """GET /api/bookings/{id}/location - Customer or worker tracks live location"""
+    user_id = _get_user_id_from_sub(get_user_sub(event))
+    if not user_id:
+        return not_found('User not found')
+
+    booking_id = get_path_param(event, 'id')
+    booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
+    if not booking:
+        return not_found('Booking not found')
+
+    role = get_user_role(event)
+    if role != 'admin' and booking.get('customer_id') != user_id and booking.get('worker_id') != user_id:
+        return forbidden('You do not have access to this booking location')
+
+    from db import activity_table
+    tracking = get_item(f'TRACKING#{booking_id}', 'LATEST', table_ref=activity_table)
+    loc = decimal_to_float(tracking) if tracking else None
+
+    return success({
+        'booking_id': booking_id,
+        'status': booking.get('status'),
+        'location': loc,
+        'worker_location': loc,
+        'destination_address': booking.get('address'),
+        'destination': {
+            'address': booking.get('address'),
+            'city': booking.get('city'),
+        },
+        'service_name': booking.get('service_name'),
+    })

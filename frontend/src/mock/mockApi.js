@@ -21,6 +21,7 @@ let services = [...mockServices];
 let bookings = [...mockBookings];
 let reviews = [...mockReviews];
 let verifications = [...mockVerifications];
+let trackingLocations = {};
 
 // Helper to wrap response like axios
 const resp = (data) => ({ data });
@@ -201,6 +202,32 @@ export const mockApi = {
       // Mock mode simulates provider "not configured" so no numbers are involved
       return resp({ call_status: 'calling', masked: true, message: 'Connecting your call. Please answer your phone.' });
     },
+    updateLocation: async (id, data) => {
+      await delay(100);
+      trackingLocations[id] = {
+        booking_id: id,
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        heading: parseFloat(data.heading || 0),
+        speed: parseFloat(data.speed || 0),
+        accuracy: data.accuracy != null ? parseFloat(data.accuracy) : null,
+        timestamp: data.timestamp || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return resp({ message: 'Location updated', data: trackingLocations[id] });
+    },
+    getLocation: async (id) => {
+      await delay(100);
+      const b = bookings.find((bk) => (bk.id === id || bk.booking_id === id));
+      return resp({
+        booking_id: id,
+        status: b?.status || 'unknown',
+        location: trackingLocations[id] || null,
+        address: b?.address || '',
+        worker_id: b?.worker_id || null,
+        worker_name: b?.worker_name || 'Assigned Specialist',
+      });
+    },
   },
 
   // --- Priority Booking (Feature 3) ---
@@ -263,9 +290,11 @@ export const mockApi = {
           service_name: b.service_name,
           scheduled_date: b.scheduled_date,
           scheduled_time: b.scheduled_time,
+          address: b.address || 'Chennai, Tamil Nadu',
           area: b.address ? b.address.split(',').pop().trim() : 'Chennai',
           estimated_earnings: b.total_amount,
           match_score: b.match_score,
+          special_requirements: b.notes || 'Emergency service requested',
         }));
       return resp({ priority_requests: result, count: result.length });
     },
@@ -448,6 +477,182 @@ export const mockApi = {
         answer = 'I can help you troubleshoot a problem, choose the right service, understand your booking status, or prepare for your technician\'s visit. What would you like help with?';
       }
       return resp({ answer, role, source: 'fallback', has_booking_context: false });
+    },
+  },
+
+  // --- Priority Booking (matching engine + dispatch simulation) ---
+  priority: {
+    create: async (data) => {
+      await delay(400);
+      const bookingId = `pb-${Date.now()}`;
+      const service = services.find((s) => s.id === data.service_id) || services[0] || { name: 'Emergency Service' };
+      
+      const eligible = mockWorkers.filter((w) => w.is_available && w.is_verified);
+      const matchedWorker = eligible.find((w) => w.services?.some((s) => s.id === data.service_id)) || eligible[0] || mockWorkers[0];
+      
+      const newBooking = {
+        id: bookingId,
+        booking_id: bookingId,
+        booking_type: 'priority',
+        service_id: data.service_id,
+        service_name: service.name,
+        address: data.address || '1204 E Pine St, Capitol Hill',
+        city: data.city || 'Chennai',
+        scheduled_date: data.scheduled_date || new Date().toISOString().slice(0, 10),
+        scheduled_time: data.scheduled_time || '10:00',
+        urgency: data.urgency || 'asap',
+        special_requirements: data.special_requirements || data.notes || '',
+        notes: data.special_requirements || data.notes || '',
+        total_amount: data.total_amount || 125,
+        status: 'worker_pending',
+        match_score: 96,
+        worker_id: matchedWorker.id,
+        worker_name: matchedWorker.full_name,
+        customer_id: 'c1000000-0000-0000-0000-000000000001',
+        customer_name: 'Priya Sharma',
+        customer_phone: '+919876543210',
+        offer_expires_at: new Date(Date.now() + 120000).toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        attempted_worker_ids: [matchedWorker.id],
+        worker: {
+          worker_id: matchedWorker.id,
+          full_name: matchedWorker.full_name,
+          rating_avg: matchedWorker.rating_avg || 4.9,
+          match_score: 96,
+          city: matchedWorker.city || 'Chennai',
+        },
+      };
+      bookings.unshift(newBooking);
+      return resp({
+        message: 'Priority request created',
+        booking_id: bookingId,
+        status: 'worker_pending',
+        match_score: 96,
+        booking: newBooking,
+      });
+    },
+
+    listCustomer: async () => {
+      await delay(200);
+      const list = bookings.filter((b) => b.booking_type === 'priority');
+      return resp({
+        priority_bookings: list.map((b) => ({
+          booking_id: b.id || b.booking_id,
+          id: b.id || b.booking_id,
+          booking_type: 'priority',
+          status: b.status,
+          service_name: b.service_name,
+          scheduled_date: b.scheduled_date,
+          scheduled_time: b.scheduled_time,
+          address: b.address,
+          total_amount: b.total_amount,
+          match_score: b.match_score || 95,
+          created_at: b.created_at,
+          worker: b.worker_id ? {
+            worker_id: b.worker_id,
+            full_name: b.worker_name,
+            rating_avg: b.worker?.rating_avg || 4.9,
+            match_score: b.match_score || 95,
+          } : null,
+        })),
+        count: list.length,
+      });
+    },
+
+    listWorkerRequests: async () => {
+      await delay(200);
+      const activeOffers = bookings.filter(
+        (b) => b.booking_type === 'priority' && b.status === 'worker_pending'
+      );
+      return resp({
+        priority_requests: activeOffers.map((r) => ({
+          booking_id: r.id || r.booking_id,
+          booking_type: 'priority',
+          customer_name: r.customer_name || 'Client',
+          service_name: r.service_name,
+          scheduled_date: r.scheduled_date,
+          scheduled_time: r.scheduled_time,
+          area: r.address ? r.address.split(',').pop().trim() : 'Local Area',
+          address: r.address,
+          estimated_earnings: r.total_amount || 145,
+          total_amount: r.total_amount || 145,
+          match_score: r.match_score || 98,
+          offer_expires_at: r.offer_expires_at || new Date(Date.now() + 60000).toISOString(),
+          special_requirements: r.special_requirements || r.notes || '',
+          notes: r.notes || '',
+        })),
+        count: activeOffers.length,
+      });
+    },
+
+    accept: async (id) => {
+      await delay(300);
+      const idx = bookings.findIndex((b) => (b.id === id || b.booking_id === id));
+      if (idx >= 0) {
+        bookings[idx] = {
+          ...bookings[idx],
+          status: 'accepted',
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return resp({ message: 'Priority booking confirmed', status: 'accepted' });
+    },
+
+    reject: async (id) => {
+      await delay(300);
+      const idx = bookings.findIndex((b) => (b.id === id || b.booking_id === id));
+      if (idx >= 0) {
+        const attempted = bookings[idx].attempted_worker_ids || [];
+        const nextWorker = mockWorkers.find((w) => !attempted.includes(w.id));
+        if (nextWorker) {
+          bookings[idx] = {
+            ...bookings[idx],
+            worker_id: nextWorker.id,
+            worker_name: nextWorker.full_name,
+            attempted_worker_ids: [...attempted, nextWorker.id],
+            offer_expires_at: new Date(Date.now() + 120000).toISOString(),
+            status: 'worker_pending',
+            updated_at: new Date().toISOString(),
+          };
+          return resp({ message: 'Offer rejected, rematched to next candidate', status: 'worker_pending' });
+        } else {
+          bookings[idx] = {
+            ...bookings[idx],
+            status: 'no_worker_available',
+            updated_at: new Date().toISOString(),
+          };
+          return resp({ message: 'No more workers available', status: 'no_worker_available' });
+        }
+      }
+      return resp({ message: 'Offer rejected' });
+    },
+
+    rematch: async (id) => {
+      await delay(300);
+      const idx = bookings.findIndex((b) => (b.id === id || b.booking_id === id));
+      if (idx >= 0) {
+        bookings[idx] = {
+          ...bookings[idx],
+          status: 'worker_pending',
+          offer_expires_at: new Date(Date.now() + 120000).toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return resp({ message: 'Rematch initiated', status: 'worker_pending' });
+    },
+
+    cancel: async (id) => {
+      await delay(300);
+      const idx = bookings.findIndex((b) => (b.id === id || b.booking_id === id));
+      if (idx >= 0) {
+        bookings[idx] = {
+          ...bookings[idx],
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        };
+      }
+      return resp({ message: 'Priority booking cancelled', status: 'cancelled' });
     },
   },
 };

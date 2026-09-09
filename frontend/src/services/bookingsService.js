@@ -24,4 +24,8 @@ export const bookingsService = isMock ? mockApi.bookings : {
   // In-app masked calling (number privacy) — works for both customer & worker.
   // The backend routes to the correct party; no phone number is ever returned.
   initiateCall: (bookingId) => api.post(`/bookings/${bookingId}/call`),
+
+  // Live GPS Tracking & Road Routing
+  updateLocation: (bookingId, locationData) => api.put(`/bookings/${bookingId}/location`, locationData),
+  getLocation: (bookingId) => api.get(`/bookings/${bookingId}/location`),
 };
