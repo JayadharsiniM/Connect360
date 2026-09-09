@@ -412,10 +412,18 @@ def initiate_call(event):
     """
     POST /api/bookings/{id}/call
 
-    Bridges a masked call between the customer and the assigned worker for an
-    active booking. Neither party's real phone number is returned to the client.
+    Direct-dial calling for an active booking. The caller places the call from
+    their OWN phone via the device's native dialer, so this endpoint returns the
+    other party's phone number ONLY so the client can hand it to the OS dialer.
 
-    Authorization:
+    Privacy model:
+      - The number is returned solely to trigger the native dialer; the app UI
+        never displays it (see CallButton.jsx — it shows only the callee's name).
+      - The number IS handed to the caller's own phone (unavoidable for a
+        self-dialed call: the phone must receive a number to dial it, and it
+        will appear in the OS dialer / call history).
+
+    Authorization (unchanged, strict):
       - Caller must be the customer OR the assigned worker of THIS booking.
       - Booking status must be 'accepted' or 'in_progress'.
     """
@@ -446,49 +454,29 @@ def initiate_call(event):
     if booking.get('status') not in _CALLABLE_STATUSES:
         return error('Calling is only available for active bookings', status_code=409)
 
-    # Determine caller vs callee and fetch numbers SERVER-SIDE ONLY.
-    # These numbers are never placed in any response, log, or error.
+    # Determine the callee (the OTHER party) and fetch their profile server-side.
     if caller_user_id == customer_id:
-        caller_profile = get_item(f'USER#{customer_id}', 'PROFILE')
         callee_profile = get_item(f'USER#{worker_id}', 'PROFILE')
         callee_role = 'worker'
+        callee_name = booking.get('worker_name', '') or (callee_profile or {}).get('full_name', '')
     else:
-        caller_profile = get_item(f'USER#{worker_id}', 'PROFILE')
         callee_profile = get_item(f'USER#{customer_id}', 'PROFILE')
         callee_role = 'customer'
+        callee_name = booking.get('customer_name', '') or (callee_profile or {}).get('full_name', '')
 
-    caller_number = (caller_profile or {}).get('phone', '')
     callee_number = (callee_profile or {}).get('phone', '')
 
-    if not caller_number:
-        return error('Add your phone number in your profile to make calls', status_code=422)
     if not callee_number:
         return error(f'The {callee_role} has not added a phone number yet', status_code=422)
 
-    # Delegate to the isolated provider adapter. It returns NO phone numbers.
-    result = calling_provider.initiate_masked_call(
-        caller_number=caller_number,
-        callee_number=callee_number,
-        booking_id=booking_id,
-    )
-
-    status = result.get('status')
-
-    if status == calling_provider.STATUS_INITIATED:
-        return success({
-            'call_status': 'calling',
-            'masked': True,
-            'message': f'Connecting your call to the {callee_role}. Please answer your phone.',
-        })
-
-    if status == calling_provider.STATUS_NOT_CONFIGURED:
-        return error('Calling is not available right now', status_code=503)
-
-    if status == calling_provider.STATUS_INVALID_NUMBERS:
-        return error('Calling could not be completed. Please check phone numbers.', status_code=422)
-
-    # STATUS_PROVIDER_ERROR or anything unexpected — safe generic message
-    return error('Unable to connect the call. Please try again later.', status_code=502)
+    # Return the number ONLY so the client can open the native dialer.
+    # The frontend must NOT render this number; it displays only the name.
+    return success({
+        'call_status': 'dial',
+        'phone': callee_number,
+        'callee_name': callee_name or callee_role.capitalize(),
+        'callee_role': callee_role,
+    })
 
 
 def update_booking_location(event):
