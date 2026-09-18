@@ -289,6 +289,15 @@ Two separate weight sets replace the single `MATCHING_WEIGHTS` config:
 - `frontend/src/pages/admin/UserManagement.jsx` — paginated user table with role tabs (All / Customer / Worker / Admin), search by name/email, inline role change dropdown, suspend/reactivate toggle
 - `frontend/src/pages/admin/VerificationQueue.jsx` — pending verification documents with document-type filter, age-based priority badge (High = 2+ days), link to Review Console
 
+### 7. Direct Native-Dial Calling (Call Feature Enabled)
+
+**Files:** `frontend/src/components/CallButton.jsx`, `backend/shared/calling_provider.py`
+
+- Customers and workers can start a call directly from the booking view via the CallButton component
+- Uses the device's native dialer (`tel:` intent), with the counterpart's name shown while the number stays hidden in-app for privacy
+- Backend `calling_provider.py` retains the Twilio masked-calling adapter as an optional upgrade path (numbers stay private end to end)
+- Call action is only exposed on active bookings where both parties are engaged
+
 ### 6. Priority Booking Form — Uber/Ola Style UI
 
 **File:** `frontend/src/pages/customer/PriorityBookingForm.jsx`
