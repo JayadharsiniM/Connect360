@@ -1,0 +1,501 @@
+test_id,category,has_pii,pii_type,input_text,redacted_text,is_redacted,outcome,mean_latency_us,p50_latency_us,p90_latency_us,p99_latency_us
+1,Indian_Phone_Standard,True,phone,9876543210,[hidden],True,TP,1.172,1.1,1.2,2.01
+2,Indian_Phone_Standard,True,phone,9123456789,[hidden],True,TP,1.17,1.1,1.2,2.411
+3,Indian_Phone_Standard,True,phone,8901234567,[hidden],True,TP,1.163,1.1,1.2,1.511
+4,Indian_Phone_Standard,True,phone,7890123456,[hidden],True,TP,1.149,1.1,1.2,1.302
+5,Indian_Phone_Standard,True,phone,6381234567,[hidden],True,TP,1.255,1.1,1.2,1.899
+6,Indian_Phone_Standard,True,phone,9443322110,[hidden],True,TP,1.153,1.1,1.2,1.403
+7,Indian_Phone_Standard,True,phone,9840012345,[hidden],True,TP,1.146,1.1,1.2,1.3
+8,Indian_Phone_Standard,True,phone,9962012345,[hidden],True,TP,1.161,1.2,1.2,1.301
+9,Indian_Phone_Standard,True,phone,8056012345,[hidden],True,TP,1.131,1.1,1.2,1.3
+10,Indian_Phone_Standard,True,phone,7358012345,[hidden],True,TP,0.999,1.0,1.1,1.402
+11,Indian_Phone_Standard,True,phone,9789012345,[hidden],True,TP,0.996,1.0,1.0,2.102
+12,Indian_Phone_Standard,True,phone,9884012345,[hidden],True,TP,1.103,1.0,1.1,2.534
+13,Indian_Phone_Standard,True,phone,9600012345,[hidden],True,TP,2.099,1.0,1.1,3.183
+14,Indian_Phone_Standard,True,phone,9444012345,[hidden],True,TP,1.017,1.0,1.1,1.317
+15,Indian_Phone_Standard,True,phone,9381012345,[hidden],True,TP,1.019,1.0,1.1,1.2
+16,Indian_Phone_Standard,True,phone,9841012345,[hidden],True,TP,1.02,1.0,1.0,1.225
+17,Indian_Phone_Standard,True,phone,9791012345,[hidden],True,TP,0.975,1.0,1.0,1.209
+18,Indian_Phone_Standard,True,phone,9842012345,[hidden],True,TP,1.004,1.0,1.1,2.1
+19,Indian_Phone_Standard,True,phone,9445012345,[hidden],True,TP,0.98,1.0,1.0,1.217
+20,Indian_Phone_Standard,True,phone,9940012345,[hidden],True,TP,0.988,1.0,1.0,1.113
+21,Indian_Phone_Standard,True,phone,98765 43210,[hidden],True,TP,0.973,0.9,1.0,1.605
+22,Indian_Phone_Standard,True,phone,91234 56789,[hidden],True,TP,0.945,0.9,1.0,1.0
+23,Indian_Phone_Standard,True,phone,89012 34567,[hidden],True,TP,0.935,0.9,1.0,1.001
+24,Indian_Phone_Standard,True,phone,78901 23456,[hidden],True,TP,0.943,0.9,1.0,1.1
+25,Indian_Phone_Standard,True,phone,63812 34567,[hidden],True,TP,0.954,0.9,1.0,1.212
+26,Indian_Phone_Standard,True,phone,9876-543-210,[hidden],True,TP,1.04,1.0,1.1,1.202
+27,Indian_Phone_Standard,True,phone,9123-456-789,[hidden],True,TP,1.036,1.0,1.1,1.2
+28,Indian_Phone_Standard,True,phone,8901-234-567,[hidden],True,TP,1.126,1.0,1.1,1.282
+29,Indian_Phone_Standard,True,phone,7890-123-456,[hidden],True,TP,1.054,1.05,1.1,1.2
+30,Indian_Phone_Standard,True,phone,6381-234-567,[hidden],True,TP,6.561,1.8,2.52,18.364
+31,Indian_Phone_Standard,True,phone,98-76-54-32-10,[hidden],True,TP,1.115,1.1,1.2,1.3
+32,Indian_Phone_Standard,True,phone,91-23-45-67-89,[hidden],True,TP,1.163,1.1,1.2,1.32
+33,Indian_Phone_Standard,True,phone,89-01-23-45-67,[hidden],True,TP,1.178,1.2,1.2,1.41
+34,Indian_Phone_Standard,True,phone,78-90-12-34-56,[hidden],True,TP,2.209,1.4,3.11,6.59
+35,Indian_Phone_Standard,True,phone,63-81-23-45-67,[hidden],True,TP,1.106,1.1,1.2,1.202
+36,Indian_Phone_Standard,True,phone,09876543210,[hidden],True,TP,1.065,1.0,1.1,2.323
+37,Indian_Phone_Standard,True,phone,09123456789,[hidden],True,TP,1.007,1.0,1.1,1.102
+38,Indian_Phone_Standard,True,phone,08901234567,[hidden],True,TP,1.03,1.0,1.1,1.407
+39,Indian_Phone_Standard,True,phone,07890123456,[hidden],True,TP,1.021,1.0,1.1,2.2
+40,Indian_Phone_Standard,True,phone,06381234567,[hidden],True,TP,1.003,1.0,1.1,1.31
+41,Indian_Phone_Standard,True,phone,044-24567890,[hidden],True,TP,1.026,1.0,1.1,1.102
+42,Indian_Phone_Standard,True,phone,080-23456789,[hidden],True,TP,1.037,1.0,1.1,1.2
+43,Indian_Phone_Standard,True,phone,022-26543210,[hidden],True,TP,1.055,1.1,1.1,1.201
+44,Indian_Phone_Standard,True,phone,011-23345678,[hidden],True,TP,1.071,1.0,1.1,1.705
+45,Indian_Phone_Standard,True,phone,040-27890123,[hidden],True,TP,1.075,1.1,1.1,1.31
+46,Indian_Phone_Standard,True,phone,044 24567890,[hidden],True,TP,0.994,1.0,1.0,1.411
+47,Indian_Phone_Standard,True,phone,080 23456789,[hidden],True,TP,1.024,1.0,1.1,2.2
+48,Indian_Phone_Standard,True,phone,022 26543210,[hidden],True,TP,0.972,1.0,1.0,1.101
+49,Indian_Phone_Standard,True,phone,011 23345678,[hidden],True,TP,1.049,1.0,1.1,2.2
+50,Indian_Phone_Standard,True,phone,040 27890123,[hidden],True,TP,0.969,1.0,1.0,1.101
+51,Indian_Phone_Prefixed,True,phone,+91 9876543210,[hidden],True,TP,1.017,1.0,1.1,1.104
+52,Indian_Phone_Prefixed,True,phone,+91 9123456789,[hidden],True,TP,6.737,1.0,1.2,233.818
+53,Indian_Phone_Prefixed,True,phone,+91 8901234567,[hidden],True,TP,1.033,1.0,1.1,1.2
+54,Indian_Phone_Prefixed,True,phone,+91 7890123456,[hidden],True,TP,1.042,1.0,1.1,1.504
+55,Indian_Phone_Prefixed,True,phone,+91 6381234567,[hidden],True,TP,1.744,1.0,1.1,2.299
+56,Indian_Phone_Prefixed,True,phone,+91-9876543210,[hidden],True,TP,1.149,1.1,1.2,1.312
+57,Indian_Phone_Prefixed,True,phone,+91-9123456789,[hidden],True,TP,1.131,1.1,1.2,1.6
+58,Indian_Phone_Prefixed,True,phone,+91-8901234567,[hidden],True,TP,1.134,1.1,1.2,1.31
+59,Indian_Phone_Prefixed,True,phone,+91-7890123456,[hidden],True,TP,1.105,1.1,1.2,1.201
+60,Indian_Phone_Prefixed,True,phone,+91-6381234567,[hidden],True,TP,1.138,1.1,1.2,2.403
+61,Indian_Phone_Prefixed,True,phone,+919876543210,[hidden],True,TP,1.866,1.7,2.3,4.543
+62,Indian_Phone_Prefixed,True,phone,+919123456789,[hidden],True,TP,1.108,1.1,1.1,2.21
+63,Indian_Phone_Prefixed,True,phone,+918901234567,[hidden],True,TP,1.096,1.1,1.1,1.309
+64,Indian_Phone_Prefixed,True,phone,+917890123456,[hidden],True,TP,1.127,1.1,1.1,1.358
+65,Indian_Phone_Prefixed,True,phone,+916381234567,[hidden],True,TP,1.1,1.1,1.2,2.202
+66,Indian_Phone_Prefixed,True,phone,+91 98765 43210,[hidden],True,TP,1.053,1.0,1.1,1.311
+67,Indian_Phone_Prefixed,True,phone,+91 91234 56789,[hidden],True,TP,1.039,1.0,1.1,1.209
+68,Indian_Phone_Prefixed,True,phone,+91 89012 34567,[hidden],True,TP,1.076,1.0,1.2,2.102
+69,Indian_Phone_Prefixed,True,phone,+91 78901 23456,[hidden],True,TP,1.084,1.0,1.2,2.121
+70,Indian_Phone_Prefixed,True,phone,+91 63812 34567,[hidden],True,TP,1.01,1.0,1.1,1.2
+71,Indian_Phone_Prefixed,True,phone,+91-98765-43210,[hidden],True,TP,1.196,1.1,1.2,2.039
+72,Indian_Phone_Prefixed,True,phone,+91-91234-56789,[hidden],True,TP,1.195,1.2,1.2,1.413
+73,Indian_Phone_Prefixed,True,phone,+91-89012-34567,[hidden],True,TP,7.811,1.1,1.2,264.7
+74,Indian_Phone_Prefixed,True,phone,+91-78901-23456,[hidden],True,TP,1.15,1.1,1.2,1.202
+75,Indian_Phone_Prefixed,True,phone,+91-63812-34567,[hidden],True,TP,1.185,1.1,1.2,1.837
+76,Indian_Phone_Prefixed,True,phone,+91 987-654-3210,[hidden],True,TP,1.828,1.1,1.2,3.008
+77,Indian_Phone_Prefixed,True,phone,+91 912-345-6789,[hidden],True,TP,1.132,1.1,1.2,2.003
+78,Indian_Phone_Prefixed,True,phone,+91 890-123-4567,[hidden],True,TP,1.128,1.1,1.2,1.501
+79,Indian_Phone_Prefixed,True,phone,+91 789-012-3456,[hidden],True,TP,1.138,1.1,1.2,2.3
+80,Indian_Phone_Prefixed,True,phone,+91 638-123-4567,[hidden],True,TP,1.138,1.1,1.2,1.312
+81,Indian_Phone_Prefixed,True,phone,+91 (0) 9876543210,+91 (0) [hidden],True,TP,1.419,1.4,1.51,2.402
+82,Indian_Phone_Prefixed,True,phone,+91 (0) 9123456789,+91 (0) [hidden],True,TP,1.591,1.4,2.4,2.802
+83,Indian_Phone_Prefixed,True,phone,+91 (98765) 43210,+91 (98765) 43210,False,FN,1.212,1.2,1.3,1.501
+84,Indian_Phone_Prefixed,True,phone,+91 98765-43210,[hidden],True,TP,1.073,1.1,1.1,1.201
+85,Indian_Phone_Prefixed,True,phone,+91 9876 543210,[hidden],True,TP,1.095,1.0,1.2,1.903
+86,Indian_Phone_Prefixed,True,phone,91-9876543210,[hidden],True,TP,1.107,1.1,1.11,1.502
+87,Indian_Phone_Prefixed,True,phone,91-9123456789,[hidden],True,TP,1.113,1.1,1.2,1.31
+88,Indian_Phone_Prefixed,True,phone,91-8901234567,[hidden],True,TP,1.172,1.1,1.2,3.417
+89,Indian_Phone_Prefixed,True,phone,91-7890123456,[hidden],True,TP,1.136,1.1,1.2,2.301
+90,Indian_Phone_Prefixed,True,phone,91-6381234567,[hidden],True,TP,1.086,1.1,1.1,1.409
+91,Indian_Phone_Prefixed,True,phone,91 98765 43210,[hidden],True,TP,1.007,1.0,1.1,1.201
+92,Indian_Phone_Prefixed,True,phone,91 91234 56789,[hidden],True,TP,1.026,1.0,1.1,1.309
+93,Indian_Phone_Prefixed,True,phone,91 89012 34567,[hidden],True,TP,1.05,1.0,1.1,2.201
+94,Indian_Phone_Prefixed,True,phone,91 78901 23456,[hidden],True,TP,1.002,1.0,1.1,1.2
+95,Indian_Phone_Prefixed,True,phone,91 63812 34567,[hidden],True,TP,1.03,1.0,1.2,1.302
+96,Indian_Phone_Prefixed,True,phone,+91 44 2456 7890,[hidden],True,TP,1.018,1.0,1.1,1.201
+97,Indian_Phone_Prefixed,True,phone,+91 80 2345 6789,[hidden],True,TP,1.031,1.0,1.1,1.2
+98,Indian_Phone_Prefixed,True,phone,+91 22 2654 3210,[hidden],True,TP,1.08,1.0,1.1,2.205
+99,Indian_Phone_Prefixed,True,phone,+91 11 2334 5678,[hidden],True,TP,1.083,1.0,1.11,2.301
+100,Indian_Phone_Prefixed,True,phone,+91 40 2789 0123,[hidden],True,TP,1.059,1.0,1.1,2.103
+101,International_Phone,True,phone,+1 202 555 0143,[hidden],True,TP,1.021,1.0,1.1,1.408
+102,International_Phone,True,phone,+1-202-555-0143,[hidden],True,TP,1.142,1.1,1.2,1.301
+103,International_Phone,True,phone,+12025550143,[hidden],True,TP,1.022,1.0,1.1,1.102
+104,International_Phone,True,phone,+1 (202) 555-0143,+1 (202) 555-0143,False,FN,1.229,1.2,1.3,2.2
+105,International_Phone,True,phone,+1 415 555 2671,[hidden],True,TP,1.03,1.0,1.1,1.806
+106,International_Phone,True,phone,+44 20 7946 0958,[hidden],True,TP,1.034,1.0,1.1,2.301
+107,International_Phone,True,phone,+44-20-7946-0958,[hidden],True,TP,1.236,1.2,1.3,1.637
+108,International_Phone,True,phone,+442079460958,[hidden],True,TP,1.106,1.1,1.2,1.301
+109,International_Phone,True,phone,+44 7700 900077,[hidden],True,TP,1.069,1.0,1.1,2.406
+110,International_Phone,True,phone,+44-7700-900077,[hidden],True,TP,1.188,1.1,1.21,2.204
+111,International_Phone,True,phone,+65 6789 0123,[hidden],True,TP,1.014,1.0,1.01,2.2
+112,International_Phone,True,phone,+65-6789-0123,[hidden],True,TP,2.572,1.8,5.72,11.034
+113,International_Phone,True,phone,+6567890123,[hidden],True,TP,1.095,1.0,1.1,1.387
+114,International_Phone,True,phone,+65 9123 4567,[hidden],True,TP,1.011,1.0,1.01,1.901
+115,International_Phone,True,phone,+65-9123-4567,[hidden],True,TP,1.234,1.1,1.2,1.444
+116,International_Phone,True,phone,+61 2 9374 4000,[hidden],True,TP,2.155,1.0,1.1,3.381
+117,International_Phone,True,phone,+61-2-9374-4000,[hidden],True,TP,1.205,1.2,1.2,2.302
+118,International_Phone,True,phone,+61 412 345 678,[hidden],True,TP,0.989,1.0,1.0,1.201
+119,International_Phone,True,phone,+61-412-345-678,[hidden],True,TP,1.204,1.2,1.2,1.441
+120,International_Phone,True,phone,+61293744000,[hidden],True,TP,1.066,1.0,1.1,1.904
+121,International_Phone,True,phone,+971 4 390 0000,[hidden],True,TP,0.981,1.0,1.0,1.102
+122,International_Phone,True,phone,+971-4-390-0000,[hidden],True,TP,1.168,1.2,1.2,1.408
+123,International_Phone,True,phone,+971 50 123 4567,[hidden],True,TP,1.01,1.0,1.1,1.303
+124,International_Phone,True,phone,+971-50-123-4567,[hidden],True,TP,1.188,1.2,1.3,1.402
+125,International_Phone,True,phone,+97143900000,[hidden],True,TP,1.079,1.0,1.1,1.441
+126,International_Phone,True,phone,+49 30 22732152,[hidden],True,TP,1.183,1.1,2.01,2.404
+127,International_Phone,True,phone,+49-30-22732152,[hidden],True,TP,1.474,1.2,2.11,3.42
+128,International_Phone,True,phone,+49 151 23456789,[hidden],True,TP,1.102,1.1,1.2,2.102
+129,International_Phone,True,phone,+49-151-23456789,[hidden],True,TP,1.198,1.2,1.3,1.41
+130,International_Phone,True,phone,+493022732152,[hidden],True,TP,1.124,1.1,1.2,2.3
+131,International_Phone,True,phone,+33 1 42 68 55 00,[hidden],True,TP,1.1,1.0,1.1,2.239
+132,International_Phone,True,phone,+33-1-42-68-55-00,[hidden],True,TP,1.231,1.2,1.3,1.401
+133,International_Phone,True,phone,+33 6 12 34 56 78,[hidden],True,TP,1.045,1.0,1.1,1.603
+134,International_Phone,True,phone,+33-6-12-34-56-78,[hidden],True,TP,1.26,1.2,1.3,2.401
+135,International_Phone,True,phone,+33142685500,[hidden],True,TP,1.027,1.0,1.1,1.102
+136,International_Phone,True,phone,+81 3 5555 3800,[hidden],True,TP,1.043,1.0,1.1,1.312
+137,International_Phone,True,phone,+81-3-5555-3800,[hidden],True,TP,1.839,1.2,1.2,3.137
+138,International_Phone,True,phone,+81 90 1234 5678,[hidden],True,TP,1.045,1.0,1.1,1.705
+139,International_Phone,True,phone,+81-90-1234-5678,[hidden],True,TP,1.197,1.2,1.2,1.708
+140,International_Phone,True,phone,+81355553800,[hidden],True,TP,1.022,1.0,1.1,1.1
+141,International_Phone,True,phone,+86 10 6552 9988,[hidden],True,TP,1.02,1.0,1.1,1.2
+142,International_Phone,True,phone,+86-10-6552-9988,[hidden],True,TP,1.203,1.2,1.2,1.412
+143,International_Phone,True,phone,+86 138 0013 8000,[hidden],True,TP,1.038,1.0,1.1,1.201
+144,International_Phone,True,phone,+86-138-0013-8000,[hidden],True,TP,1.242,1.2,1.3,1.401
+145,International_Phone,True,phone,+861065529988,[hidden],True,TP,1.056,1.1,1.1,1.202
+146,International_Phone,True,phone,+49 89 2345 6789,[hidden],True,TP,1.022,1.0,1.1,1.41
+147,International_Phone,True,phone,+1 312 555 0199,[hidden],True,TP,0.99,1.0,1.0,1.307
+148,International_Phone,True,phone,+44 161 496 0123,[hidden],True,TP,1.071,1.0,1.1,2.3
+149,International_Phone,True,phone,+65 6123 4567,[hidden],True,TP,0.973,1.0,1.0,1.404
+150,International_Phone,True,phone,+61 3 9654 3210,[hidden],True,TP,1.001,1.0,1.0,1.209
+151,Email_Address,True,email,technician.ac@gmail.com,[hidden],True,TP,0.84,0.8,0.9,2.1
+152,Email_Address,True,email,user_123@yahoo.co.in,[hidden],True,TP,0.778,0.8,0.8,0.901
+153,Email_Address,True,email,support@connect360.org,[hidden],True,TP,0.797,0.8,0.8,1.01
+154,Email_Address,True,email,raj.kumar@outlook.com,[hidden],True,TP,0.794,0.8,0.81,1.009
+155,Email_Address,True,email,service.chennai@urbancompany.com,[hidden],True,TP,0.807,0.8,0.8,1.012
+156,Email_Address,True,email,plumbing_expert@hotmail.com,[hidden],True,TP,0.792,0.8,0.8,0.901
+157,Email_Address,True,email,info@servicepro.in,[hidden],True,TP,0.797,0.8,0.9,1.0
+158,Email_Address,True,email,contact@repairhub.io,[hidden],True,TP,0.803,0.8,0.9,0.9
+159,Email_Address,True,email,mohan.electrician@fastmail.com,[hidden],True,TP,0.831,0.8,0.9,0.901
+160,Email_Address,True,email,customercare@tatapower.co.in,[hidden],True,TP,0.798,0.8,0.8,1.003
+161,Email_Address,True,email,admin@connect360-marketplace.com,[hidden],True,TP,0.825,0.8,0.9,1.306
+162,Email_Address,True,email,deepak.sharma99@gmail.com,[hidden],True,TP,0.803,0.8,0.9,0.901
+163,Email_Address,True,email,arun_v@sify.com,[hidden],True,TP,0.789,0.8,0.9,0.9
+164,Email_Address,True,email,suresh.k@rediffmail.com,[hidden],True,TP,0.808,0.8,0.9,0.9
+165,Email_Address,True,email,helpdesk@urbanclap.com,[hidden],True,TP,0.819,0.8,0.8,1.904
+166,Email_Address,True,email,billing@homerepair.net,[hidden],True,TP,0.786,0.8,0.8,0.901
+167,Email_Address,True,email,emergency@chennaicity.gov.in,[hidden],True,TP,1.397,1.2,1.8,3.112
+168,Email_Address,True,email,ac_maintenance@daikinindia.com,[hidden],True,TP,0.82,0.8,0.9,1.003
+169,Email_Address,True,email,anand+technician@gmail.com,[hidden],True,TP,0.842,0.8,0.9,2.001
+170,Email_Address,True,email,support+priority@connect360.in,[hidden],True,TP,0.858,0.8,0.9,1.05
+171,Email_Address,True,email,sales.south@carrier-midea.com,[hidden],True,TP,0.817,0.8,0.9,1.201
+172,Email_Address,True,email,feedback@voltas.com,[hidden],True,TP,0.773,0.8,0.8,0.901
+173,Email_Address,True,email,john.doe.carpenter@gmail.com,[hidden],True,TP,0.807,0.8,0.9,1.0
+174,Email_Address,True,email,vijay_waterproof@yahoo.com,[hidden],True,TP,0.799,0.8,0.8,0.901
+175,Email_Address,True,email,kavitha.painter@outlook.com,[hidden],True,TP,0.804,0.8,0.9,1.111
+176,Email_Address,True,email,technician-adambakkam@gmail.com,[hidden],True,TP,0.825,0.8,0.9,1.801
+177,Email_Address,True,email,worker_9944@connect360.in,[hidden],True,TP,0.798,0.8,0.9,0.901
+178,Email_Address,True,email,dispatch@speedyplumb.co.uk,[hidden],True,TP,0.794,0.8,0.8,1.004
+179,Email_Address,True,email,saravanan.m@iitm.ac.in,[hidden],True,TP,1.013,0.8,0.9,2.282
+180,Email_Address,True,email,ravi.teja@pes.edu,[hidden],True,TP,0.782,0.8,0.8,0.901
+181,Email_Address,True,email,contact.us@hvac-solutions.org,[hidden],True,TP,6.007,0.8,0.9,240.585
+182,Email_Address,True,email,booking@coolairchennai.com,[hidden],True,TP,0.802,0.8,0.9,0.901
+183,Email_Address,True,email,service@whirlpoolindia.com,[hidden],True,TP,0.846,0.8,0.9,2.001
+184,Email_Address,True,email,care@lgindia.com,[hidden],True,TP,0.801,0.8,0.8,1.011
+185,Email_Address,True,email,support@samsungcustomer.com,[hidden],True,TP,0.822,0.8,0.9,1.208
+186,Email_Address,True,email,complaints@godrej.com,[hidden],True,TP,0.782,0.8,0.8,0.901
+187,Email_Address,True,email,krishnan.subramanian@tcs.com,[hidden],True,TP,0.792,0.8,0.8,0.901
+188,Email_Address,True,email,balaji.r@infosys.com,[hidden],True,TP,0.787,0.8,0.8,1.108
+189,Email_Address,True,email,karthik.n@zoho.com,[hidden],True,TP,0.776,0.8,0.8,0.902
+190,Email_Address,True,email,tech.support@swiggy.in,[hidden],True,TP,0.776,0.8,0.8,0.9
+191,Email_Address,True,email,ops@zomato.com,[hidden],True,TP,0.815,0.8,0.8,1.9
+192,Email_Address,True,email,contractor_chennai@live.com,[hidden],True,TP,0.788,0.8,0.8,0.901
+193,Email_Address,True,email,help@urbanplumber.in,[hidden],True,TP,0.8,0.8,0.9,0.901
+194,Email_Address,True,email,service@aquaguard.co.in,[hidden],True,TP,1.313,1.2,1.51,2.222
+195,Email_Address,True,email,ro_repair@kentindia.com,[hidden],True,TP,0.793,0.8,0.9,1.011
+196,Email_Address,True,email,electrician_velachery@gmail.com,[hidden],True,TP,0.869,0.8,0.9,2.0
+197,Email_Address,True,email,ac_gasfill@adambakkam.in,[hidden],True,TP,0.813,0.8,0.9,1.705
+198,Email_Address,True,email,enquiry@homerepairsindia.com,[hidden],True,TP,0.807,0.8,0.9,0.901
+199,Email_Address,True,email,dispatch.mgr@connect360.internal,[hidden],True,TP,1.332,0.9,0.9,1.568
+200,Email_Address,True,email,claims@homeassurance.co.in,[hidden],True,TP,0.805,0.8,0.9,0.902
+201,Dialogue_PII_Embedded,True,mixed_dialogue,Please call me directly at 9876543210 to discuss the AC repair.,Please call me directly at [hidden] to discuss the AC repair.,True,TP,2.869,2.8,2.9,4.003
+202,Dialogue_PII_Embedded,True,mixed_dialogue,You can reach the technician on +91 9123456789 after 6 PM.,You can reach the technician on [hidden] after 6 PM.,True,TP,2.584,2.5,2.7,3.8
+203,Dialogue_PII_Embedded,True,mixed_dialogue,"My phone number is 9840012345, please share the live location.","My phone number is [hidden], please share the live location.",True,TP,2.855,2.8,2.9,4.1
+204,Dialogue_PII_Embedded,True,mixed_dialogue,Kindly contact me at technician.ac@gmail.com with the quote.,Kindly contact me at [hidden] with the quote.,True,TP,2.25,2.2,2.3,3.101
+205,Dialogue_PII_Embedded,True,mixed_dialogue,Call 987-654-3210 immediately if water starts overflowing.,Call [hidden] immediately if water starts overflowing.,True,TP,2.804,2.8,2.9,3.902
+206,Dialogue_PII_Embedded,True,mixed_dialogue,I am available on +91-98765-43210 for gate security clearance.,I am available on [hidden] for gate security clearance.,True,TP,2.99,2.9,3.0,8.001
+207,Dialogue_PII_Embedded,True,mixed_dialogue,Worker said to send WhatsApp to 9962012345 for spare parts receipt.,Worker said to send WhatsApp to [hidden] for spare parts receipt.,True,TP,2.969,2.9,3.0,4.002
+208,Dialogue_PII_Embedded,True,mixed_dialogue,Please email the tax invoice to user_123@yahoo.co.in.,Please email the tax invoice to [hidden].,True,TP,2.903,2.2,3.61,8.102
+209,Dialogue_PII_Embedded,True,mixed_dialogue,Dial +1 202 555 0143 if you need international billing support.,Dial [hidden] if you need international billing support.,True,TP,2.834,2.8,2.9,4.0
+210,Dialogue_PII_Embedded,True,mixed_dialogue,You can reach our supervisor on 044-24567890 between 9am and 5pm.,You can reach our supervisor on [hidden] between 9am and 5pm.,True,TP,2.936,2.9,3.0,3.309
+211,Dialogue_PII_Embedded,True,mixed_dialogue,Plumber's emergency contact is 8056012345.,Plumber's emergency contact is [hidden].,True,TP,2.29,2.2,2.3,3.501
+212,Dialogue_PII_Embedded,True,mixed_dialogue,Send your address details to support@connect360.org.,Send your address details to [hidden].,True,TP,10.041,2.1,3.21,12.501
+213,Dialogue_PII_Embedded,True,mixed_dialogue,The technician Mohan can be reached at 7358012345.,The technician Mohan can be reached at [hidden].,True,TP,7.945,2.6,3.32,239.399
+214,Dialogue_PII_Embedded,True,mixed_dialogue,"If you want direct booking without fee, call 9443322110.","If you want direct booking without fee, call [hidden].",True,TP,3.311,2.7,2.8,4.795
+215,Dialogue_PII_Embedded,True,mixed_dialogue,"Worker phone is +91 9789012345, call before coming.","Worker phone is [hidden], call before coming.",True,TP,2.413,2.3,2.4,4.132
+216,Dialogue_PII_Embedded,True,mixed_dialogue,Reach out to customercare@tatapower.co.in for meter issues.,Reach out to [hidden] for meter issues.,True,TP,2.087,2.1,2.1,2.607
+217,Dialogue_PII_Embedded,True,mixed_dialogue,My alternate mobile is 9600012345 in case first one is busy.,My alternate mobile is [hidden] in case first one is busy.,True,TP,2.723,2.7,2.8,3.108
+218,Dialogue_PII_Embedded,True,mixed_dialogue,Share the photos of the pipe leak to plumber_expert@hotmail.com.,Share the photos of the pipe leak to [hidden].,True,TP,2.295,2.3,2.4,2.61
+219,Dialogue_PII_Embedded,True,mixed_dialogue,"Technician arrived, please call him at 9381012345 to open gate.","Technician arrived, please call him at [hidden] to open gate.",True,TP,2.886,2.9,2.9,3.306
+220,Dialogue_PII_Embedded,True,mixed_dialogue,Direct line for customer escalation is 080-23456789.,Direct line for customer escalation is [hidden].,True,TP,2.645,2.6,2.7,3.9
+221,Dialogue_PII_Embedded,True,mixed_dialogue,Technician number: +91-89012-34567.,Technician number: [hidden].,True,TP,2.063,2.0,2.1,3.301
+222,Dialogue_PII_Embedded,True,mixed_dialogue,Ping me at deepak.sharma99@gmail.com with your portfolio.,Ping me at [hidden] with your portfolio.,True,TP,2.123,2.1,2.2,2.901
+223,Dialogue_PII_Embedded,True,mixed_dialogue,Contact the AC master technician directly: 9791012345.,Contact the AC master technician directly: [hidden].,True,TP,2.704,2.7,2.8,2.902
+224,Dialogue_PII_Embedded,True,mixed_dialogue,WhatsApp me on 9444012345 with the video of the buzzing noise.,WhatsApp me on [hidden] with the video of the buzzing noise.,True,TP,2.991,2.8,3.81,5.3
+225,Dialogue_PII_Embedded,True,mixed_dialogue,Send confirmation to booking@coolairchennai.com right away.,Send confirmation to [hidden] right away.,True,TP,2.227,2.2,2.3,2.802
+226,Dialogue_PII_Embedded,True,mixed_dialogue,Call 9841012345 for immediate arrival.,Call [hidden] for immediate arrival.,True,TP,1.982,2.0,2.0,2.103
+227,Dialogue_PII_Embedded,True,mixed_dialogue,Reach the carpenter at +91 63812 34567.,Reach the carpenter at [hidden].,True,TP,1.924,1.9,2.0,2.101
+228,Dialogue_PII_Embedded,True,mixed_dialogue,Email the warranty card to service@whirlpoolindia.com.,Email the warranty card to [hidden].,True,TP,2.214,2.0,2.91,4.704
+229,Dialogue_PII_Embedded,True,mixed_dialogue,"Customer phone number is 9842012345, please call for directions.","Customer phone number is [hidden], please call for directions.",True,TP,3.59,2.9,3.1,4.709
+230,Dialogue_PII_Embedded,True,mixed_dialogue,Contact admin@connect360-marketplace.com to report abuse.,Contact [hidden] to report abuse.,True,TP,1.999,1.9,2.1,3.801
+231,Dialogue_PII_Embedded,True,mixed_dialogue,"My brother will handle the keys, his cell is 9445012345.","My brother will handle the keys, his cell is [hidden].",True,TP,2.719,2.7,2.8,3.002
+232,Dialogue_PII_Embedded,True,mixed_dialogue,Technician's personal number is +91 9884012345.,Technician's personal number is [hidden].,True,TP,2.425,2.3,2.4,3.941
+233,Dialogue_PII_Embedded,True,mixed_dialogue,Drop a note to care@lgindia.com regarding PCB replacement.,Drop a note to [hidden] regarding PCB replacement.,True,TP,2.458,2.4,2.5,2.702
+234,Dialogue_PII_Embedded,True,mixed_dialogue,Emergency line for gas leakage: 9940012345.,Emergency line for gas leakage: [hidden].,True,TP,2.285,2.3,2.3,3.306
+235,Dialogue_PII_Embedded,True,mixed_dialogue,"Technician phone 09876543210, call when you reach the tower.","Technician phone [hidden], call when you reach the tower.",True,TP,2.786,2.8,2.8,3.206
+236,Dialogue_PII_Embedded,True,mixed_dialogue,Email invoice copy to billing@homerepair.net.,Email invoice copy to [hidden].,True,TP,1.775,1.8,1.8,1.903
+237,Dialogue_PII_Embedded,True,mixed_dialogue,Electrician contact: +91 91234 56789.,Electrician contact: [hidden].,True,TP,2.026,2.0,2.0,3.035
+238,Dialogue_PII_Embedded,True,mixed_dialogue,Call +44 20 7946 0958 for UK customer coordination.,Call [hidden] for UK customer coordination.,True,TP,2.32,2.3,2.4,2.712
+239,Dialogue_PII_Embedded,True,mixed_dialogue,Send technician ID card copy to info@servicepro.in.,Send technician ID card copy to [hidden].,True,TP,2.141,2.1,2.2,2.902
+240,Dialogue_PII_Embedded,True,mixed_dialogue,You can ring me on 8901-234-567 if downstairs doorbell fails.,You can ring me on [hidden] if downstairs doorbell fails.,True,TP,2.756,2.7,2.8,3.109
+241,Dialogue_PII_Embedded,True,mixed_dialogue,Plumber phone is 91-9876543210.,Plumber phone is [hidden].,True,TP,1.837,1.8,1.9,2.001
+242,Dialogue_PII_Embedded,True,mixed_dialogue,Send payment receipt to helpdesk@urbanclap.com.,Send payment receipt to [hidden].,True,TP,1.927,1.9,2.0,2.106
+243,Dialogue_PII_Embedded,True,mixed_dialogue,Customer mobile: 07890123456.,Customer mobile: [hidden].,True,TP,1.781,1.8,1.8,2.005
+244,Dialogue_PII_Embedded,True,mixed_dialogue,Reach supervisor at 022-26543210.,Reach supervisor at [hidden].,True,TP,1.941,1.9,2.0,2.407
+245,Dialogue_PII_Embedded,True,mixed_dialogue,Direct mobile +91 789-012-3456.,Direct mobile [hidden].,True,TP,1.738,1.7,1.8,1.904
+246,Dialogue_PII_Embedded,True,mixed_dialogue,Send inquiries to enquiry@homerepairsindia.com.,Send inquiries to [hidden].,True,TP,1.777,1.7,1.8,2.356
+247,Dialogue_PII_Embedded,True,mixed_dialogue,Call 98-76-54-32-10 for carpentry estimate.,Call [hidden] for carpentry estimate.,True,TP,2.239,2.2,2.31,2.706
+248,Dialogue_PII_Embedded,True,mixed_dialogue,Technician email is arun_v@sify.com.,Technician email is [hidden].,True,TP,1.766,1.7,1.81,2.108
+249,Dialogue_PII_Embedded,True,mixed_dialogue,Contact +65 6789 0123 for Singapore office.,Contact [hidden] for Singapore office.,True,TP,2.223,2.1,2.2,4.141
+250,Dialogue_PII_Embedded,True,mixed_dialogue,Mobile 06381234567 available 24/7.,Mobile [hidden] available 24/7.,True,TP,1.871,1.9,1.9,2.002
+251,Operational_Prices,False,none,The estimated service charge is ₹500 for inspection.,The estimated service charge is ₹500 for inspection.,False,TN,3.165,3.1,3.2,4.538
+252,Operational_Prices,False,none,Base visiting fee is Rs. 1500 including taxes.,Base visiting fee is Rs. 1500 including taxes.,False,TN,2.257,2.2,2.3,2.501
+253,Operational_Prices,False,none,Material replacement will cost approximately ₹1200.,Material replacement will cost approximately ₹1200.,False,TN,3.152,3.1,3.2,3.611
+254,Operational_Prices,False,none,Total price quoted by the technician: Rs 2500.,Total price quoted by the technician: Rs 2500.,False,TN,2.231,2.2,2.3,2.706
+255,Operational_Prices,False,none,AC gas charging usually costs ₹1800 to ₹2200.,AC gas charging usually costs ₹1800 to ₹2200.,False,TN,2.55,2.5,2.6,3.024
+256,Operational_Prices,False,none,Spare capacitor replacement fee is Rs. 450.,Spare capacitor replacement fee is Rs. 450.,False,TN,2.134,2.1,2.2,2.401
+257,Operational_Prices,False,none,A minimum inspection charge of ₹299 applies if work is cancelled.,A minimum inspection charge of ₹299 applies if work is cancelled.,False,TN,3.628,3.6,3.8,4.1
+258,Operational_Prices,False,none,Labor cost is Rs. 850 per hour.,Labor cost is Rs. 850 per hour.,False,TN,1.663,1.7,1.7,1.802
+259,Operational_Prices,False,none,Bathroom waterproofing estimate: ₹14500 total.,Bathroom waterproofing estimate: ₹14500 total.,False,TN,2.965,2.9,3.1,3.91
+260,Operational_Prices,False,none,Electrical switchboard rewiring is Rs 350 per point.,Electrical switchboard rewiring is Rs 350 per point.,False,TN,2.977,2.6,3.61,4.1
+261,Operational_Prices,False,none,The standard charge is ₹750 for fan motor winding.,The standard charge is ₹750 for fan motor winding.,False,TN,2.775,2.8,2.9,3.1
+262,Operational_Prices,False,none,Priority booking fee of ₹99 has been waived.,Priority booking fee of ₹99 has been waived.,False,TN,2.864,2.6,3.6,4.802
+263,Operational_Prices,False,none,"Total amount payable: ₹3,500 via UPI.","Total amount payable: ₹3,500 via UPI.",False,TN,2.155,2.1,2.2,2.501
+264,Operational_Prices,False,none,Cost breakdown: ₹600 labor + ₹1400 parts = ₹2000.,Cost breakdown: ₹600 labor + ₹1400 parts = ₹2000.,False,TN,2.809,2.7,2.8,4.145
+265,Operational_Prices,False,none,Estimated budget is Rs. 5000 for full house painting.,Estimated budget is Rs. 5000 for full house painting.,False,TN,2.477,2.5,2.6,2.703
+266,Operational_Prices,False,none,Geyser thermostat costs around ₹850 in the market.,Geyser thermostat costs around ₹850 in the market.,False,TN,2.889,2.9,3.0,3.202
+267,Operational_Prices,False,none,Tap ceramic disc replacement is Rs. 200.,Tap ceramic disc replacement is Rs. 200.,False,TN,2.023,2.0,2.1,2.2
+268,Operational_Prices,False,none,Drain cleaning chemical cost: ₹350.,Drain cleaning chemical cost: ₹350.,False,TN,2.532,2.2,2.74,5.777
+269,Operational_Prices,False,none,Split AC deep cleaning is ₹999 per unit.,Split AC deep cleaning is ₹999 per unit.,False,TN,2.507,2.3,3.41,5.103
+270,Operational_Prices,False,none,Window AC installation rate: Rs. 1200 flat.,Window AC installation rate: Rs. 1200 flat.,False,TN,2.232,2.2,2.3,2.707
+271,Operational_Prices,False,none,Advance payment of ₹1000 is required for materials.,Advance payment of ₹1000 is required for materials.,False,TN,3.07,3.0,3.1,3.578
+272,Operational_Prices,False,none,Discount of ₹150 has been applied to your bill.,Discount of ₹150 has been applied to your bill.,False,TN,2.614,2.6,2.7,3.008
+273,Operational_Prices,False,none,Inspection is ₹199; actual repair depends on diagnosis.,Inspection is ₹199; actual repair depends on diagnosis.,False,TN,3.17,3.2,3.3,3.401
+274,Operational_Prices,False,none,Technician charges ₹400 for additional hour.,Technician charges ₹400 for additional hour.,False,TN,2.76,2.7,2.81,3.72
+275,Operational_Prices,False,none,Total billing amount is Rs. 4250.,Total billing amount is Rs. 4250.,False,TN,1.8,1.7,1.9,2.903
+276,Operational_Prices,False,none,Copper pipe extension costs ₹320 per foot.,Copper pipe extension costs ₹320 per foot.,False,TN,2.534,2.5,2.6,3.44
+277,Operational_Prices,False,none,Water purifier sediment filter price is Rs 650.,Water purifier sediment filter price is Rs 650.,False,TN,2.375,2.3,2.5,3.304
+278,Operational_Prices,False,none,Main MCB replacement cost: ₹1100.,Main MCB replacement cost: ₹1100.,False,TN,2.069,2.1,2.1,2.301
+279,Operational_Prices,False,none,Microwave magnetron replacement: Rs. 2800.,Microwave magnetron replacement: Rs. 2800.,False,TN,2.238,2.2,2.3,2.403
+280,Operational_Prices,False,none,Chimney motor repair fee: ₹1650.,Chimney motor repair fee: ₹1650.,False,TN,1.987,2.0,2.01,2.101
+281,Operational_Prices,False,none,Price range: ₹400 - ₹800 depending on fixture.,Price range: ₹400 - ₹800 depending on fixture.,False,TN,2.828,2.7,3.0,3.925
+282,Operational_Prices,False,none,"Final invoice: ₹2,150 paid by cash.","Final invoice: ₹2,150 paid by cash.",False,TN,2.018,2.0,2.1,2.203
+283,Operational_Prices,False,none,Visiting fee is Rs. 250 in daytime.,Visiting fee is Rs. 250 in daytime.,False,TN,2.421,1.9,3.52,6.414
+284,Operational_Prices,False,none,Night emergency surcharge is ₹500 extra.,Night emergency surcharge is ₹500 extra.,False,TN,2.781,2.5,3.7,4.205
+285,Operational_Prices,False,none,Carpenter labor charges: Rs. 1100 per day.,Carpenter labor charges: Rs. 1100 per day.,False,TN,2.177,2.1,2.2,3.249
+286,Operational_Prices,False,none,Sofa shampooing package is ₹1399.,Sofa shampooing package is ₹1399.,False,TN,2.115,2.1,2.2,2.4
+287,Operational_Prices,False,none,Balcony bird net installation: Rs. 2400.,Balcony bird net installation: Rs. 2400.,False,TN,2.063,2.0,2.1,2.406
+288,Operational_Prices,False,none,Wall tile fixing is ₹65 per square foot.,Wall tile fixing is ₹65 per square foot.,False,TN,2.385,2.3,2.41,3.404
+289,Operational_Prices,False,none,Plumbing washbasin replacement is Rs. 950.,Plumbing washbasin replacement is Rs. 950.,False,TN,2.126,2.1,2.2,2.301
+290,Operational_Prices,False,none,Exhaust fan installation fee: ₹350.,Exhaust fan installation fee: ₹350.,False,TN,2.207,2.2,2.3,2.403
+291,Operational_Prices,False,none,TV wall mount bracket + installation: ₹899.,TV wall mount bracket + installation: ₹899.,False,TN,2.62,2.6,2.7,2.907
+292,Operational_Prices,False,none,RO membrane replacement: Rs. 1850.,RO membrane replacement: Rs. 1850.,False,TN,1.843,1.8,1.9,2.001
+293,Operational_Prices,False,none,Lock cylinder replacement cost: ₹750.,Lock cylinder replacement cost: ₹750.,False,TN,2.311,2.3,2.4,2.609
+294,Operational_Prices,False,none,Door hinge realignment: Rs. 300.,Door hinge realignment: Rs. 300.,False,TN,1.898,1.8,2.0,3.102
+295,Operational_Prices,False,none,Switchboard repair is ₹250 per box.,Switchboard repair is ₹250 per box.,False,TN,2.151,2.1,2.2,2.302
+296,Operational_Prices,False,none,Inverter battery top up: Rs. 400.,Inverter battery top up: Rs. 400.,False,TN,1.797,1.8,1.8,2.133
+297,Operational_Prices,False,none,Compressor relay replacement: ₹650.,Compressor relay replacement: ₹650.,False,TN,2.278,2.3,2.3,2.501
+298,Operational_Prices,False,none,Water meter fixing charges: Rs. 800.,Water meter fixing charges: Rs. 800.,False,TN,1.826,1.8,1.9,2.002
+299,Operational_Prices,False,none,Bathroom silicone sealing: ₹450.,Bathroom silicone sealing: ₹450.,False,TN,2.047,2.0,2.1,2.201
+300,Operational_Prices,False,none,Final total comes to Rs. 1750.,Final total comes to Rs. 1750.,False,TN,1.63,1.6,1.7,1.801
+301,Operational_Pincodes,False,none,"Service area: Adyar, Chennai PIN 600020.","Service area: Adyar, Chennai PIN 600020.",False,TN,1.997,2.0,2.01,2.101
+302,Operational_Pincodes,False,none,Technician is currently serving Velachery 600042.,Technician is currently serving Velachery 600042.,False,TN,2.427,2.4,2.5,2.6
+303,Operational_Pincodes,False,none,Customer address located in T. Nagar PIN: 600017.,Customer address located in T. Nagar PIN: 600017.,False,TN,2.313,2.3,2.4,2.401
+304,Operational_Pincodes,False,none,Delivery address postal code is 600001.,Delivery address postal code is 600001.,False,TN,1.972,2.0,2.0,2.101
+305,Operational_Pincodes,False,none,Worker registered in Mylapore with PIN 600004.,Worker registered in Mylapore with PIN 600004.,False,TN,2.299,2.3,2.4,3.701
+306,Operational_Pincodes,False,none,Service request from Anna Nagar 600040.,Service request from Anna Nagar 600040.,False,TN,2.07,2.0,2.1,3.506
+307,Operational_Pincodes,False,none,Technician covers Thiruvanmiyur PIN code 600041.,Technician covers Thiruvanmiyur PIN code 600041.,False,TN,2.555,2.4,2.7,3.724
+308,Operational_Pincodes,False,none,Customer location: Guindy 600032.,Customer location: Guindy 600032.,False,TN,1.919,1.9,2.0,3.1
+309,Operational_Pincodes,False,none,Coverage area extends to Nungambakkam 600034.,Coverage area extends to Nungambakkam 600034.,False,TN,2.562,2.4,3.21,5.044
+310,Operational_Pincodes,False,none,Booking scheduled for Tambaram PIN 600045.,Booking scheduled for Tambaram PIN 600045.,False,TN,2.415,2.2,3.41,4.106
+311,Operational_Pincodes,False,none,Technician hub at Chromepet 600044.,Technician hub at Chromepet 600044.,False,TN,2.303,2.0,3.21,4.002
+312,Operational_Pincodes,False,none,Service available in Porur 600116.,Service available in Porur 600116.,False,TN,2.266,1.9,2.92,6.75
+313,Operational_Pincodes,False,none,Customer postal zone: Vadapalani 600026.,Customer postal zone: Vadapalani 600026.,False,TN,2.055,2.0,2.1,2.202
+314,Operational_Pincodes,False,none,Worker assigned from Alwarpet 600018.,Worker assigned from Alwarpet 600018.,False,TN,1.911,1.9,2.0,2.1
+315,Operational_Pincodes,False,none,Service area: Besant Nagar 600090.,Service area: Besant Nagar 600090.,False,TN,1.793,1.8,1.8,2.905
+316,Operational_Pincodes,False,none,Bangalore service center: Koramangala 560034.,Bangalore service center: Koramangala 560034.,False,TN,2.271,2.3,2.3,2.501
+317,Operational_Pincodes,False,none,Customer in Indiranagar PIN 560038.,Customer in Indiranagar PIN 560038.,False,TN,1.893,1.9,2.0,2.003
+318,Operational_Pincodes,False,none,Technician base: Whitefield 560066.,Technician base: Whitefield 560066.,False,TN,1.97,1.9,2.0,2.147
+319,Operational_Pincodes,False,none,Service request from HSR Layout 560102.,Service request from HSR Layout 560102.,False,TN,2.024,2.0,2.1,2.309
+320,Operational_Pincodes,False,none,Customer address: Jayanagar 560041.,Customer address: Jayanagar 560041.,False,TN,1.906,1.9,2.0,2.001
+321,Operational_Pincodes,False,none,Electronic City PIN 560100 coverage.,Electronic City PIN 560100 coverage.,False,TN,1.93,1.9,2.0,2.102
+322,Operational_Pincodes,False,none,Hyderabad zone: Hitec City 500081.,Hyderabad zone: Hitec City 500081.,False,TN,1.814,1.8,1.9,1.902
+323,Operational_Pincodes,False,none,Customer located in Gachibowli 500032.,Customer located in Gachibowli 500032.,False,TN,2.037,2.0,2.1,3.202
+324,Operational_Pincodes,False,none,Madhapur service area PIN 500086.,Madhapur service area PIN 500086.,False,TN,6.016,2.0,3.4,105.482
+325,Operational_Pincodes,False,none,Jubilee Hills 500033 customer location.,Jubilee Hills 500033 customer location.,False,TN,2.096,2.1,2.11,3.101
+326,Operational_Pincodes,False,none,Delhi hub: Connaught Place 110001.,Delhi hub: Connaught Place 110001.,False,TN,1.851,1.8,1.9,2.007
+327,Operational_Pincodes,False,none,Service available in Saket 110017.,Service available in Saket 110017.,False,TN,1.855,1.8,1.9,2.207
+328,Operational_Pincodes,False,none,Vasant Kunj PIN 110070 service.,Vasant Kunj PIN 110070 service.,False,TN,1.849,1.75,1.91,2.563
+329,Operational_Pincodes,False,none,Dwarka sector 10 PIN 110075.,Dwarka sector 10 PIN 110075.,False,TN,1.649,1.6,1.8,2.7
+330,Operational_Pincodes,False,none,Rohini sector 3 PIN 110085.,Rohini sector 3 PIN 110085.,False,TN,1.671,1.6,1.7,2.909
+331,Operational_Pincodes,False,none,Mumbai branch: Bandra West 400050.,Mumbai branch: Bandra West 400050.,False,TN,1.851,1.8,1.9,2.1
+332,Operational_Pincodes,False,none,Andheri East PIN 400069.,Andheri East PIN 400069.,False,TN,1.466,1.5,1.5,1.7
+333,Operational_Pincodes,False,none,Customer address in Colaba 400005.,Customer address in Colaba 400005.,False,TN,1.863,1.8,1.9,2.113
+334,Operational_Pincodes,False,none,Dadar West postal code 400028.,Dadar West postal code 400028.,False,TN,1.758,1.7,1.9,3.031
+335,Operational_Pincodes,False,none,Powai service hub PIN 400076.,Powai service hub PIN 400076.,False,TN,1.623,1.6,1.7,2.007
+336,Operational_Pincodes,False,none,Pune center: Kothrud 411038.,Pune center: Kothrud 411038.,False,TN,1.605,1.6,1.7,2.005
+337,Operational_Pincodes,False,none,Viman Nagar PIN 411014.,Viman Nagar PIN 411014.,False,TN,1.406,1.4,1.5,1.706
+338,Operational_Pincodes,False,none,Hinjewadi IT park 411057.,Hinjewadi IT park 411057.,False,TN,1.497,1.5,1.6,1.601
+339,Operational_Pincodes,False,none,Kolkata: Salt Lake 700091.,Kolkata: Salt Lake 700091.,False,TN,1.52,1.5,1.6,1.7
+340,Operational_Pincodes,False,none,Park Street PIN 700016.,Park Street PIN 700016.,False,TN,1.475,1.4,1.5,2.529
+341,Operational_Pincodes,False,none,Howrah central PIN 711101.,Howrah central PIN 711101.,False,TN,1.533,1.5,1.6,1.8
+342,Operational_Pincodes,False,none,Coimbatore: Gandhipuram 641012.,Coimbatore: Gandhipuram 641012.,False,TN,1.811,1.8,1.9,1.903
+343,Operational_Pincodes,False,none,RS Puram PIN 641002.,RS Puram PIN 641002.,False,TN,1.367,1.3,1.4,1.544
+344,Operational_Pincodes,False,none,Madurai: KK Nagar 625020.,Madurai: KK Nagar 625020.,False,TN,1.479,1.5,1.5,1.701
+345,Operational_Pincodes,False,none,Trichy: Thillai Nagar 620018.,Trichy: Thillai Nagar 620018.,False,TN,1.604,1.6,1.7,1.801
+346,Operational_Pincodes,False,none,Kochi: Edappally 682024.,Kochi: Edappally 682024.,False,TN,1.458,1.5,1.5,1.602
+347,Operational_Pincodes,False,none,Kakkenad PIN 682030.,Kakkenad PIN 682030.,False,TN,1.332,1.3,1.4,1.501
+348,Operational_Pincodes,False,none,Ahmedabad: Vastrapur 380015.,Ahmedabad: Vastrapur 380015.,False,TN,1.668,1.7,1.7,1.801
+349,Operational_Pincodes,False,none,Surat: Adajan 395009.,Surat: Adajan 395009.,False,TN,1.331,1.3,1.4,1.402
+350,Operational_Pincodes,False,none,Jaipur: Malviya Nagar 302017.,Jaipur: Malviya Nagar 302017.,False,TN,1.606,1.6,1.7,1.701
+351,Operational_Dates_Times,False,none,Your booking is scheduled for 2026-09-20 at 10:30 AM.,Your booking is scheduled for [hidden] at 10:30 AM.,True,FP,2.517,2.5,2.6,2.704
+352,Operational_Dates_Times,False,none,Technician will arrive on 2026-09-25 between 2:00 PM and 4:00 PM.,Technician will arrive on [hidden] between 2:00 PM and 4:00 PM.,True,FP,2.991,2.9,3.0,4.026
+353,Operational_Dates_Times,False,none,Service completed on 2026-08-15 at 14:45.,Service completed on [hidden] at 14:45.,True,FP,2.16,2.1,2.3,3.204
+354,Operational_Dates_Times,False,none,Preferred slot: 19/09/2026 morning 9:00 AM.,Preferred slot: 19/09/2026 morning 9:00 AM.,False,TN,2.131,2.1,2.2,2.407
+355,Operational_Dates_Times,False,none,Rescheduled to 22/10/2026 at 11:15 AM.,Rescheduled to 22/10/2026 at 11:15 AM.,False,TN,2.095,2.0,2.1,3.603
+356,Operational_Dates_Times,False,none,"Available slots: 2026-10-01, 2026-10-02, 2026-10-03.","Available slots: [hidden], [hidden], [hidden].",True,FP,2.619,2.6,2.7,2.804
+357,Operational_Dates_Times,False,none,Job started at 09:30 AM and ended at 11:45 AM.,Job started at 09:30 AM and ended at 11:45 AM.,False,TN,2.2,2.2,2.3,2.7
+358,Operational_Dates_Times,False,none,Estimated duration: 2 hours 30 minutes.,Estimated duration: 2 hours 30 minutes.,False,TN,2.125,2.1,2.2,2.535
+359,Operational_Dates_Times,False,none,Warranty valid until 2027-03-31.,Warranty valid until [hidden].,True,FP,2.029,1.9,2.0,3.948
+360,Operational_Dates_Times,False,none,Next maintenance due on 2026-12-15.,Next maintenance due on [hidden].,True,FP,2.01,2.0,2.1,2.202
+361,Operational_Dates_Times,False,none,Booking created at 2026-09-19T10:15:30Z.,Booking created at [hidden]T10:15:30Z.,True,FP,2.117,2.1,2.2,2.606
+362,Operational_Dates_Times,False,none,Arrival window: 15:00 - 17:00 on Friday.,Arrival window: 15:00 - 17:00 on Friday.,False,TN,2.032,2.0,2.1,3.3
+363,Operational_Dates_Times,False,none,The technician worked from 10:00 to 13:15.,The technician worked from 10:00 to 13:15.,False,TN,2.243,2.1,2.51,3.3
+364,Operational_Dates_Times,False,none,Appointment confirmed for 2026-11-05.,Appointment confirmed for [hidden].,True,FP,2.95,2.3,4.11,6.5
+365,Operational_Dates_Times,False,none,Scheduled visit date: 15-10-2026.,Scheduled visit date: [hidden].,True,FP,2.014,1.9,2.1,3.303
+366,Operational_Dates_Times,False,none,Customer requested postponement to 2026-09-28.,Customer requested postponement to [hidden].,True,FP,2.614,2.5,2.8,3.902
+367,Operational_Dates_Times,False,none,Slot confirmed: tomorrow at 08:00 AM.,Slot confirmed: tomorrow at 08:00 AM.,False,TN,2.736,2.8,3.5,5.02
+368,Operational_Dates_Times,False,none,Visit window: 2026-10-10 14:00 to 16:00.,Visit window: [hidden]:00 to 16:00.,True,FP,3.847,3.5,4.61,6.284
+369,Operational_Dates_Times,False,none,Completed in 45 minutes on 2026-09-18.,Completed in 45 minutes on [hidden].,True,FP,3.79,3.7,4.21,5.802
+370,Operational_Dates_Times,False,none,Estimated arrival in 25 minutes.,Estimated arrival in 25 minutes.,False,TN,3.241,3.0,4.02,5.803
+371,Operational_Dates_Times,False,none,Technician delayed by 15 minutes due to traffic.,Technician delayed by 15 minutes due to traffic.,False,TN,4.163,4.0,4.41,8.227
+372,Operational_Dates_Times,False,none,Next available slot is 2026-09-21 at 16:30.,Next available slot is [hidden] at 16:30.,True,FP,3.776,3.7,4.1,5.202
+373,Operational_Dates_Times,False,none,"Created on 2026-09-01, expired on 2026-09-15.","Created on [hidden], expired on [hidden].",True,FP,4.16,4.0,4.85,8.358
+374,Operational_Dates_Times,False,none,Service warranty is 30 days from 2026-09-19.,Service warranty is 30 days from [hidden].,True,FP,2.456,2.4,2.4,3.665
+375,Operational_Dates_Times,False,none,Follow up scheduled for 2026-09-24 at 10:00.,Follow up scheduled for [hidden] at 10:00.,True,FP,2.295,2.2,2.4,3.602
+376,Operational_Dates_Times,False,none,Technician standby time: 20 minutes.,Technician standby time: 20 minutes.,False,TN,2.701,2.95,3.6,4.901
+377,Operational_Dates_Times,False,none,Daily service hours: 08:00 AM - 08:00 PM.,Daily service hours: 08:00 AM - 08:00 PM.,False,TN,2.039,2.0,2.1,3.501
+378,Operational_Dates_Times,False,none,Peak hours: 18:00 to 21:00.,Peak hours: 18:00 to 21:00.,False,TN,1.55,1.5,1.6,2.502
+379,Operational_Dates_Times,False,none,Booking expires in 120 seconds.,Booking expires in 120 seconds.,False,TN,1.75,1.7,1.8,2.802
+380,Operational_Dates_Times,False,none,Response time benchmark: 45 seconds.,Response time benchmark: 45 seconds.,False,TN,1.974,1.9,2.0,3.202
+381,Operational_Dates_Times,False,none,Job duration: 1 hour 15 minutes.,Job duration: 1 hour 15 minutes.,False,TN,1.798,1.8,1.8,2.912
+382,Operational_Dates_Times,False,none,Inspection time logged: 11:30 AM.,Inspection time logged: 11:30 AM.,False,TN,1.837,1.8,1.9,2.803
+383,Operational_Dates_Times,False,none,Gate check-in recorded at 10:05 AM.,Gate check-in recorded at 10:05 AM.,False,TN,1.892,1.8,1.91,3.0
+384,Operational_Dates_Times,False,none,Check-out time: 12:40 PM on 2026-09-19.,Check-out time: 12:40 PM on [hidden].,True,FP,2.155,2.1,2.2,2.509
+385,Operational_Dates_Times,False,none,Slot selected: 2026-09-23 09:00-11:00.,Slot selected: [hidden]:00-11:00.,True,FP,1.942,1.9,2.0,2.406
+386,Operational_Dates_Times,False,none,Window AC service takes 60 to 90 minutes.,Window AC service takes 60 to 90 minutes.,False,TN,2.065,2.0,2.1,3.101
+387,Operational_Dates_Times,False,none,Annual maintenance contract valid 2026-2027.,Annual maintenance contract valid 2026-2027.,False,TN,2.36,2.3,2.5,3.303
+388,Operational_Dates_Times,False,none,Technician arrived at 10:12 AM.,Technician arrived at 10:12 AM.,False,TN,1.77,1.7,1.8,2.901
+389,Operational_Dates_Times,False,none,Customer confirmation received at 09:45 AM.,Customer confirmation received at 09:45 AM.,False,TN,2.269,2.2,2.3,2.541
+390,Operational_Dates_Times,False,none,Priority match completed in 1.8 seconds.,Priority match completed in 1.8 seconds.,False,TN,2.148,2.1,2.2,3.301
+391,Operational_Dates_Times,False,none,System timestamp: 2026-09-19 12:30:00.,System timestamp: [hidden]:30:00.,True,FP,2.016,1.9,2.2,3.506
+392,Operational_Dates_Times,False,none,Scheduled for 2026-10-12 at 15:30.,Scheduled for [hidden] at 15:30.,True,FP,4.874,2.8,3.71,42.18
+393,Operational_Dates_Times,False,none,Last service was done on 2025-11-20.,Last service was done on [hidden].,True,FP,2.019,2.0,2.1,2.204
+394,Operational_Dates_Times,False,none,Free re-service window: 7 days.,Free re-service window: 7 days.,False,TN,1.823,1.8,1.9,3.201
+395,Operational_Dates_Times,False,none,"Booking timeline: requested 09:00, assigned 09:05.","Booking timeline: requested 09:00, assigned 09:05.",False,TN,2.518,2.5,2.6,3.108
+396,Operational_Dates_Times,False,none,Job active since 2026-09-19 11:00 AM.,Job active since [hidden]:00 AM.,True,FP,1.871,1.8,2.0,2.209
+397,Operational_Dates_Times,False,none,Estimated time of arrival: 18:45.,Estimated time of arrival: 18:45.,False,TN,1.792,1.8,1.9,2.1
+398,Operational_Dates_Times,False,none,Technician on route at 10:20 AM.,Technician on route at 10:20 AM.,False,TN,1.762,1.8,1.8,1.9
+399,Operational_Dates_Times,False,none,Slot opened for 2026-09-22 14:00.,Slot opened for [hidden]:00.,True,FP,1.799,1.8,1.9,2.002
+400,Operational_Dates_Times,False,none,Reminder sent at 2026-09-19 08:00 AM.,Reminder sent at [hidden]:00 AM.,True,FP,1.898,1.9,2.0,2.002
+401,Operational_Specs_Dimensions,False,none,AC capacity is 1.5 ton 5-star inverter split unit.,AC capacity is 1.5 ton 5-star inverter split unit.,False,TN,2.559,2.5,2.6,3.737
+402,Operational_Specs_Dimensions,False,none,Operating voltage requirement is 220V to 240V at 50Hz.,Operating voltage requirement is 220V to 240V at 50Hz.,False,TN,2.622,2.6,2.7,3.011
+403,Operational_Specs_Dimensions,False,none,Room dimensions: 12 feet by 15 feet with 10 foot ceiling.,Room dimensions: 12 feet by 15 feet with 10 foot ceiling.,False,TN,2.908,2.7,3.0,7.115
+404,Operational_Specs_Dimensions,False,none,Television size is 55-inch OLED 4K display.,Television size is 55-inch OLED 4K display.,False,TN,2.242,2.2,2.3,2.5
+405,Operational_Specs_Dimensions,False,none,Pipe diameter: 0.5 inch copper tubing with 1.2 mm gauge.,Pipe diameter: 0.5 inch copper tubing with 1.2 mm gauge.,False,TN,2.655,2.6,2.71,2.901
+406,Operational_Specs_Dimensions,False,none,Refrigerant type required: R32 with 750 grams charge.,Refrigerant type required: R32 with 750 grams charge.,False,TN,3.205,2.7,2.8,4.016
+407,Operational_Specs_Dimensions,False,none,Motor rating: 0.5 HP submersible water pump.,Motor rating: 0.5 HP submersible water pump.,False,TN,2.203,2.2,2.3,2.501
+408,Operational_Specs_Dimensions,False,none,Water purifier flow rate: 15 liters per hour with 2000 ppm TDS.,Water purifier flow rate: 15 liters per hour with 2000 ppm TDS.,False,TN,2.89,2.9,2.9,3.9
+409,Operational_Specs_Dimensions,False,none,Wiring specification: 2.5 sq mm copper fire-retardant wire.,Wiring specification: 2.5 sq mm copper fire-retardant wire.,False,TN,2.958,2.9,3.0,4.005
+410,Operational_Specs_Dimensions,False,none,Circuit breaker rating: 16A single pole MCB.,Circuit breaker rating: 16A single pole MCB.,False,TN,2.313,2.2,2.3,5.746
+411,Operational_Specs_Dimensions,False,none,Washing machine capacity: 7.5 kg front load 1400 RPM.,Washing machine capacity: 7.5 kg front load 1400 RPM.,False,TN,2.556,2.5,2.6,2.701
+412,Operational_Specs_Dimensions,False,none,Geyser capacity: 25 liters storage 2000 Watts.,Geyser capacity: 25 liters storage 2000 Watts.,False,TN,2.34,2.3,2.4,3.402
+413,Operational_Specs_Dimensions,False,none,Air purifier CADR: 350 cubic meters per hour.,Air purifier CADR: 350 cubic meters per hour.,False,TN,2.166,2.1,2.2,2.508
+414,Operational_Specs_Dimensions,False,none,Inverter backup: 150Ah tubular battery with 900VA inverter.,Inverter backup: 150Ah tubular battery with 900VA inverter.,False,TN,2.772,2.8,2.8,3.305
+415,Operational_Specs_Dimensions,False,none,Microwave oven: 28 liters convection 900W.,Microwave oven: 28 liters convection 900W.,False,TN,2.232,2.2,2.3,3.127
+416,Operational_Specs_Dimensions,False,none,Refrigerator: 340 liters double door frost free.,Refrigerator: 340 liters double door frost free.,False,TN,2.37,2.4,2.4,2.609
+417,Operational_Specs_Dimensions,False,none,Ceiling fan sweep: 1200 mm with 380 RPM speed.,Ceiling fan sweep: 1200 mm with 380 RPM speed.,False,TN,2.209,2.2,2.3,2.4
+418,Operational_Specs_Dimensions,False,none,Drill hole size: 8 mm diameter for rawl plug.,Drill hole size: 8 mm diameter for rawl plug.,False,TN,2.206,2.2,2.3,3.4
+419,Operational_Specs_Dimensions,False,none,Exhaust fan: 200 mm axial flow with 50W motor.,Exhaust fan: 200 mm axial flow with 50W motor.,False,TN,2.253,2.2,2.3,2.425
+420,Operational_Specs_Dimensions,False,none,Main switch rating: 63A 4-pole isolator.,Main switch rating: 63A 4-pole isolator.,False,TN,2.052,2.0,2.1,2.201
+421,Operational_Specs_Dimensions,False,none,Water tank capacity: 1000 liters overhead PVC tank.,Water tank capacity: 1000 liters overhead PVC tank.,False,TN,2.44,2.4,2.5,2.602
+422,Operational_Specs_Dimensions,False,none,LED panel light: 18W round warm white 3000K.,LED panel light: 18W round warm white 3000K.,False,TN,2.228,2.2,2.3,2.804
+423,Operational_Specs_Dimensions,False,none,Wall paint area: 450 sq ft interior emulsion.,Wall paint area: 450 sq ft interior emulsion.,False,TN,2.218,2.2,2.3,2.401
+424,Operational_Specs_Dimensions,False,none,Tiles dimension: 600 mm x 600 mm vitrified tiles.,Tiles dimension: 600 mm x 600 mm vitrified tiles.,False,TN,2.376,2.3,2.4,3.303
+425,Operational_Specs_Dimensions,False,none,Sofa dimension: 3-seater 72 inches width.,Sofa dimension: 3-seater 72 inches width.,False,TN,2.231,2.2,2.3,3.102
+426,Operational_Specs_Dimensions,False,none,Curtain track length: 9 feet aluminum channel.,Curtain track length: 9 feet aluminum channel.,False,TN,2.334,2.3,2.4,3.004
+427,Operational_Specs_Dimensions,False,none,Kitchen sink: 24 x 18 inch stainless steel 304 grade.,Kitchen sink: 24 x 18 inch stainless steel 304 grade.,False,TN,2.477,2.5,2.5,2.6
+428,Operational_Specs_Dimensions,False,none,Water pressure required: 1.5 bar to 3.0 bar.,Water pressure required: 1.5 bar to 3.0 bar.,False,TN,2.216,2.2,2.3,3.301
+429,Operational_Specs_Dimensions,False,none,Gas cylinder weight: 14.2 kg domestic LPG.,Gas cylinder weight: 14.2 kg domestic LPG.,False,TN,2.112,2.1,2.2,2.408
+430,Operational_Specs_Dimensions,False,none,Compressor power: 1250 Watts with rotary mechanism.,Compressor power: 1250 Watts with rotary mechanism.,False,TN,2.5,2.5,2.5,2.909
+431,Operational_Specs_Dimensions,False,none,Thermostat temperature range: 16°C to 30°C.,Thermostat temperature range: 16°C to 30°C.,False,TN,2.292,2.2,2.5,3.402
+432,Operational_Specs_Dimensions,False,none,Filter pore size: 5 micron pre-filter cartridge.,Filter pore size: 5 micron pre-filter cartridge.,False,TN,2.538,2.4,2.8,4.002
+433,Operational_Specs_Dimensions,False,none,Drill depth: 40 mm into concrete pillar.,Drill depth: 40 mm into concrete pillar.,False,TN,2.995,2.1,4.62,9.172
+434,Operational_Specs_Dimensions,False,none,Door thickness: 35 mm flush door with veneer.,Door thickness: 35 mm flush door with veneer.,False,TN,2.348,2.3,2.5,3.601
+435,Operational_Specs_Dimensions,False,none,Cable length: 15 meters 3-core armored cable.,Cable length: 15 meters 3-core armored cable.,False,TN,2.433,2.4,2.6,3.701
+436,Operational_Specs_Dimensions,False,none,Pressure gauge reading: 65 psi suction pressure.,Pressure gauge reading: 65 psi suction pressure.,False,TN,2.528,2.4,2.6,3.802
+437,Operational_Specs_Dimensions,False,none,Sound level: 38 dB silent outdoor unit operation.,Sound level: 38 dB silent outdoor unit operation.,False,TN,2.507,2.4,2.7,3.801
+438,Operational_Specs_Dimensions,False,none,Weight of outdoor unit: 32 kg mounted on brackets.,Weight of outdoor unit: 32 kg mounted on brackets.,False,TN,2.484,2.4,2.5,3.749
+439,Operational_Specs_Dimensions,False,none,Chimney suction capacity: 1200 m3/hr with baffle filters.,Chimney suction capacity: 1200 m3/hr with baffle filters.,False,TN,2.809,2.7,3.24,4.303
+440,Operational_Specs_Dimensions,False,none,Solar water heater: 200 LPD evacuated tube collector.,Solar water heater: 200 LPD evacuated tube collector.,False,TN,3.025,2.6,3.81,6.013
+441,Operational_Specs_Dimensions,False,none,Conduit pipe: 20 mm PVC heavy gauge.,Conduit pipe: 20 mm PVC heavy gauge.,False,TN,1.895,1.9,1.9,3.102
+442,Operational_Specs_Dimensions,False,none,Earth resistance measured: 2.4 ohms at pit.,Earth resistance measured: 2.4 ohms at pit.,False,TN,2.2,2.2,2.3,3.3
+443,Operational_Specs_Dimensions,False,none,Voltage fluctuation measured: 195V to 255V.,Voltage fluctuation measured: 195V to 255V.,False,TN,2.41,2.2,2.3,3.278
+444,Operational_Specs_Dimensions,False,none,Capacitor value: 36 microfarad 440V AC.,Capacitor value: 36 microfarad 440V AC.,False,TN,2.09,2.1,2.1,2.705
+445,Operational_Specs_Dimensions,False,none,Pumping head: 25 meters vertical lift.,Pumping head: 25 meters vertical lift.,False,TN,1.993,2.0,2.1,2.309
+446,Operational_Specs_Dimensions,False,none,Submersible cable: 3 x 4.0 sq mm flat cable.,Submersible cable: 3 x 4.0 sq mm flat cable.,False,TN,2.256,2.3,2.3,2.5
+447,Operational_Specs_Dimensions,False,none,Water heater element: 3 kW copper heating coil.,Water heater element: 3 kW copper heating coil.,False,TN,2.297,2.3,2.4,2.402
+448,Operational_Specs_Dimensions,False,none,Stabilizer capacity: 4 kVA automatic voltage regulator.,Stabilizer capacity: 4 kVA automatic voltage regulator.,False,TN,2.744,2.7,2.8,3.048
+449,Operational_Specs_Dimensions,False,none,Door frame size: 7 feet x 3 feet teakwood.,Door frame size: 7 feet x 3 feet teakwood.,False,TN,2.06,2.1,2.1,2.201
+450,Operational_Specs_Dimensions,False,none,Window grill weight: 28 kg wrought iron.,Window grill weight: 28 kg wrought iron.,False,TN,2.018,2.0,2.1,2.212
+451,Operational_Dialogue_Benign,False,none,I need an AC technician for urgent water leakage repair.,I need an AC technician for urgent water leakage repair.,False,TN,2.631,2.6,2.7,2.801
+452,Operational_Dialogue_Benign,False,none,Please assign a verified electrician near Adyar.,Please assign a verified electrician near Adyar.,False,TN,2.415,2.4,2.5,2.701
+453,Operational_Dialogue_Benign,False,none,Booking ID: BOOKING#b-10293 is currently in progress.,Booking ID: BOOKING#b-10293 is currently in progress.,False,TN,2.59,2.5,2.6,4.224
+454,Operational_Dialogue_Benign,False,none,Customer confirmed appointment for tomorrow morning.,Customer confirmed appointment for tomorrow morning.,False,TN,2.64,2.6,2.7,2.801
+455,Operational_Dialogue_Benign,False,none,Worker Mohan has accepted the service request.,Worker Mohan has accepted the service request.,False,TN,2.288,2.3,2.4,2.401
+456,Operational_Dialogue_Benign,False,none,Can you help me diagnose why the washing machine won't spin?,Can you help me diagnose why the washing machine won't spin?,False,TN,2.74,2.7,2.8,4.004
+457,Operational_Dialogue_Benign,False,none,Please make sure the technician carries a ladder.,Please make sure the technician carries a ladder.,False,TN,2.334,2.3,2.4,2.6
+458,Operational_Dialogue_Benign,False,none,The technician has completed the task and updated status.,The technician has completed the task and updated status.,False,TN,2.674,2.7,2.7,3.005
+459,Operational_Dialogue_Benign,False,none,How do I cancel my pending booking without penalty?,How do I cancel my pending booking without penalty?,False,TN,2.391,2.4,2.41,2.602
+460,Operational_Dialogue_Benign,False,none,Transaction reference: TXN-88492041 confirmed via gateway.,Transaction reference: TXN-88492041 confirmed via gateway.,False,TN,2.864,2.8,2.9,3.21
+461,Operational_Dialogue_Benign,False,none,Technician rating is 4.8 out of 5 based on 124 jobs.,Technician rating is 4.8 out of 5 based on 124 jobs.,False,TN,2.588,2.5,2.61,3.83
+462,Operational_Dialogue_Benign,False,none,Is there any warranty on the ceiling fan repair?,Is there any warranty on the ceiling fan repair?,False,TN,2.29,2.3,2.4,2.502
+463,Operational_Dialogue_Benign,False,none,Please provide an itemized receipt for the materials purchased.,Please provide an itemized receipt for the materials purchased.,False,TN,3.217,2.9,3.0,3.787
+464,Operational_Dialogue_Benign,False,none,The kitchen sink faucet is dripping continuously.,The kitchen sink faucet is dripping continuously.,False,TN,2.464,2.4,2.5,2.814
+465,Operational_Dialogue_Benign,False,none,I would like to reschedule my electrical repair to weekend.,I would like to reschedule my electrical repair to weekend.,False,TN,2.703,2.7,2.8,2.901
+466,Operational_Dialogue_Benign,False,none,Assigned technician: Ramesh Kumar (HVAC Specialist).,Assigned technician: Ramesh Kumar (HVAC Specialist).,False,TN,2.579,2.6,2.6,2.703
+467,Operational_Dialogue_Benign,False,none,The technician arrived on time and was very professional.,The technician arrived on time and was very professional.,False,TN,2.745,2.7,2.8,3.501
+468,Operational_Dialogue_Benign,False,none,Job status updated to completed by service partner.,Job status updated to completed by service partner.,False,TN,2.533,2.5,2.6,3.701
+469,Operational_Dialogue_Benign,False,none,Booking reference b-994812 has been marked completed.,Booking reference b-994812 has been marked completed.,False,TN,2.517,2.5,2.6,2.701
+470,Operational_Dialogue_Benign,False,none,Do you provide chimney cleaning services in Chennai?,Do you provide chimney cleaning services in Chennai?,False,TN,2.497,2.5,2.6,2.601
+471,Operational_Dialogue_Benign,False,none,Customer notes: Please ring the doorbell twice upon arrival.,Customer notes: Please ring the doorbell twice upon arrival.,False,TN,4.308,2.9,5.11,35.609
+472,Operational_Dialogue_Benign,False,none,Technician is bringing spare parts for Daikin split AC.,Technician is bringing spare parts for Daikin split AC.,False,TN,2.708,2.6,2.8,3.735
+473,Operational_Dialogue_Benign,False,none,We offer standard 30-day service guarantee on all plumbing works.,We offer standard 30-day service guarantee on all plumbing works.,False,TN,3.194,3.1,3.4,5.2
+474,Operational_Dialogue_Benign,False,none,Please check if the main water valve is turned off.,Please check if the main water valve is turned off.,False,TN,2.511,2.4,2.5,5.164
+475,Operational_Dialogue_Benign,False,none,The circuit breaker trips whenever the geyser is switched on.,The circuit breaker trips whenever the geyser is switched on.,False,TN,2.785,2.8,2.9,3.305
+476,Operational_Dialogue_Benign,False,none,Requesting a carpenter to fix wardrobe sliding door.,Requesting a carpenter to fix wardrobe sliding door.,False,TN,2.527,2.5,2.6,2.809
+477,Operational_Dialogue_Benign,False,none,Our customer support team is available 24/7 in app.,Our customer support team is available 24/7 in app.,False,TN,2.523,2.5,2.7,3.006
+478,Operational_Dialogue_Benign,False,none,Technician background check and police verification is complete.,Technician background check and police verification is complete.,False,TN,3.162,3.0,3.2,8.709
+479,Operational_Dialogue_Benign,False,none,Can the worker bring his own drilling machine and vacuum cleaner?,Can the worker bring his own drilling machine and vacuum cleaner?,False,TN,2.954,2.9,3.01,3.803
+480,Operational_Dialogue_Benign,False,none,Payment of service fee was received successfully.,Payment of service fee was received successfully.,False,TN,2.596,2.5,2.6,4.627
+481,Operational_Dialogue_Benign,False,none,Invoice ID: INV-2026-00491 generated.,Invoice ID: INV-[hidden] generated.,True,FP,2.069,2.1,2.1,2.304
+482,Operational_Dialogue_Benign,False,none,Service category selected: Home Appliance Repair.,Service category selected: Home Appliance Repair.,False,TN,2.602,2.4,2.51,7.817
+483,Operational_Dialogue_Benign,False,none,Customer has requested female professional for cleaning.,Customer has requested female professional for cleaning.,False,TN,2.698,2.7,2.8,2.801
+484,Operational_Dialogue_Benign,False,none,Worker location is within 3.5 km from your premises.,Worker location is within 3.5 km from your premises.,False,TN,2.446,2.4,2.5,3.403
+485,Operational_Dialogue_Benign,False,none,Priority matching algorithm assigned the nearest available worker.,Priority matching algorithm assigned the nearest available worker.,False,TN,3.275,3.1,3.3,6.301
+486,Operational_Dialogue_Benign,False,none,Please wear a mask and shoe covers inside the flat.,Please wear a mask and shoe covers inside the flat.,False,TN,2.335,2.3,2.4,2.501
+487,Operational_Dialogue_Benign,False,none,The refrigerator compressor makes a loud humming sound.,The refrigerator compressor makes a loud humming sound.,False,TN,2.732,2.7,2.8,2.959
+488,Operational_Dialogue_Benign,False,none,Technician reported that gas refilling is not required.,Technician reported that gas refilling is not required.,False,TN,2.627,2.6,2.7,3.709
+489,Operational_Dialogue_Benign,False,none,Customer rating submitted: 5 stars with positive review.,Customer rating submitted: 5 stars with positive review.,False,TN,2.611,2.6,2.7,2.801
+490,Operational_Dialogue_Benign,False,none,Order reference: ORD-991204 has been dispatched.,Order reference: ORD-991204 has been dispatched.,False,TN,2.511,2.4,2.7,3.913
+491,Operational_Dialogue_Benign,False,none,Bathroom exhaust fan is jammed and needs oiling.,Bathroom exhaust fan is jammed and needs oiling.,False,TN,2.298,2.3,2.3,3.603
+492,Operational_Dialogue_Benign,False,none,Technician has been notified about your gate security code.,Technician has been notified about your gate security code.,False,TN,2.773,2.7,2.8,2.939
+493,Operational_Dialogue_Benign,False,none,All technicians carry certified digital ID badges.,All technicians carry certified digital ID badges.,False,TN,2.453,2.45,2.5,2.602
+494,Operational_Dialogue_Benign,False,none,Please confirm if the problem is fully resolved.,Please confirm if the problem is fully resolved.,False,TN,2.354,2.3,2.4,3.6
+495,Operational_Dialogue_Benign,False,none,No additional service charge is payable to the partner.,No additional service charge is payable to the partner.,False,TN,2.705,2.6,2.8,3.912
+496,Operational_Dialogue_Benign,False,none,You can track the technician's real-time ETA on map.,You can track the technician's real-time ETA on map.,False,TN,2.438,2.4,2.5,2.601
+497,Operational_Dialogue_Benign,False,none,Service partner will call via masked bridge number.,Service partner will call via masked bridge number.,False,TN,2.459,2.5,2.5,2.602
+498,Operational_Dialogue_Benign,False,none,Connect360 ensures 100% data privacy and secure payments.,Connect360 ensures 100% data privacy and secure payments.,False,TN,2.78,2.7,2.8,4.002
+499,Operational_Dialogue_Benign,False,none,Thank you for choosing Connect360 home services.,Thank you for choosing Connect360 home services.,False,TN,2.418,2.4,2.5,3.602
+500,Operational_Dialogue_Benign,False,none,Your feedback helps us maintain high service quality.,Your feedback helps us maintain high service quality.,False,TN,2.584,2.5,2.6,4.407
