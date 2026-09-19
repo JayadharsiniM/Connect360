@@ -1,0 +1,5 @@
+tier,count,spearman_rho,kendall_tau,mean_abs_rank_shift,max_rank_shift,pct_promoted,pct_demoted,pct_unchanged
+Overall,100,0.8359,0.6497,13.18,40,50.0,46.0,4.0
+Near (<5 km),30,0.9111,0.7885,11.5,38,66.7,26.7,6.7
+Mid-range (5-15 km),40,0.8227,0.6615,12.72,40,55.0,42.5,2.5
+Far (>15 km),30,0.8364,0.646,15.47,35,26.7,70.0,3.3

@@ -1,0 +1,7 @@
+dimension,total_samples,success_count,success_rate,schema_validity_rate,service_match_rate,urgent_match_rate,confirmed_match_rate,mean_latency_us,p50_latency_us,p99_latency_us
+Downstream_Dispatch,100,100,1.0,1.0,1.0,1.0,1.0,5.805,5.882,14.0
+Format_Resilience,100,100,1.0,1.0,1.0,1.0,1.0,7.064,6.633,20.114
+Service_Mapping,100,100,1.0,1.0,1.0,1.0,1.0,5.753,4.755,12.476
+Slot_Filling_Turns,100,100,1.0,1.0,1.0,1.0,1.0,5.226,3.604,17.038
+Urgency_Classification,100,100,1.0,1.0,1.0,1.0,1.0,6.015,5.421,11.259
+OVERALL,500,500,1.0,1.0,1.0,1.0,1.0,5.973,5.06,15.308

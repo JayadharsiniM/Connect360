@@ -1,0 +1,12 @@
+category,total_samples,TP,TN,FP,FN,precision,recall,specificity,f1_score,accuracy,mean_latency_us,p99_latency_us
+Dialogue_PII_Embedded,50,50,0,0,0,1.0,1.0,1.0,1.0,1.0,2.665,9.014
+Email_Address,50,50,0,0,0,1.0,1.0,1.0,1.0,1.0,0.946,3.748
+Indian_Phone_Prefixed,50,49,0,0,1,1.0,0.98,1.0,0.9899,0.98,1.402,7.285
+Indian_Phone_Standard,50,50,0,0,0,1.0,1.0,1.0,1.0,1.0,1.209,4.429
+International_Phone,50,49,0,0,1,1.0,0.98,1.0,0.9899,0.98,1.171,2.368
+Operational_Dates_Times,50,0,26,24,0,0.0,1.0,0.52,0.0,0.52,2.399,4.526
+Operational_Dialogue_Benign,50,0,49,1,0,0.0,1.0,0.98,0.0,0.98,2.643,3.802
+Operational_Pincodes,50,0,50,0,0,1.0,1.0,1.0,1.0,1.0,1.939,4.324
+Operational_Prices,50,0,50,0,0,1.0,1.0,1.0,1.0,1.0,2.402,3.404
+Operational_Specs_Dimensions,50,0,50,0,0,1.0,1.0,1.0,1.0,1.0,2.415,3.117
+OVERALL,500,248,225,25,2,0.9084,0.992,0.9,0.9484,0.946,1.919,6.021
