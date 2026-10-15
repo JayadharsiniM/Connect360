@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Login() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -23,7 +25,7 @@ export default function Login() {
       const role = result?.user?.role || result?.role || 'customer';
       navigate(`/${role}/dashboard`);
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || t('auth.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -39,9 +41,9 @@ export default function Login() {
               hub
             </span>
           </div>
-          <h1 className="font-manrope text-headline-lg-mobile text-primary">Welcome back</h1>
+          <h1 className="font-manrope text-headline-lg-mobile text-primary">{t('auth.welcomeBack')}</h1>
           <p className="font-hanken text-body-md text-on-surface-variant">
-            Sign in to your Connect360 account
+            {t('auth.signInSubtitle')}
           </p>
         </div>
 
@@ -56,25 +58,25 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Email</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.email')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               className="input-field"
               required
             />
           </div>
 
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Password</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.password')}</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('auth.passwordPlaceholder')}
                 className="input-field pr-12"
                 required
               />
@@ -98,10 +100,10 @@ export default function Login() {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                Signing in...
+                {t('auth.signingIn')}
               </span>
             ) : (
-              'Sign In'
+              t('auth.signIn')
             )}
           </button>
         </form>
@@ -109,7 +111,7 @@ export default function Login() {
         {/* Quick Demo Logins */}
         <div className="border-t border-outline-variant/60 pt-3 flex flex-col gap-2">
           <p className="font-hanken text-[11px] uppercase tracking-wider text-on-surface-variant font-bold text-center">
-            Quick Demo Logins
+            {t('auth.quickDemoLogins')}
           </p>
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -120,7 +122,7 @@ export default function Login() {
               }}
               className="py-2 px-2 bg-surface-container-low hover:bg-blue-50 hover:border-blue-300 border border-outline-variant rounded-lg text-xs font-bold text-primary transition-colors text-center"
             >
-              Customer
+              {t('auth.customer')}
             </button>
             <button
               type="button"
@@ -130,7 +132,7 @@ export default function Login() {
               }}
               className="py-2 px-2 bg-surface-container-low hover:bg-blue-50 hover:border-blue-300 border border-outline-variant rounded-lg text-xs font-bold text-primary transition-colors text-center"
             >
-              Worker
+              {t('auth.worker')}
             </button>
             <button
               type="button"
@@ -140,16 +142,16 @@ export default function Login() {
               }}
               className="py-2 px-2 bg-surface-container-low hover:bg-blue-50 hover:border-blue-300 border border-outline-variant rounded-lg text-xs font-bold text-primary transition-colors text-center"
             >
-              Admin
+              {t('auth.admin')}
             </button>
           </div>
         </div>
 
         {/* Footer */}
         <p className="font-hanken text-body-sm text-on-surface-variant text-center">
-          Don't have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/register" className="text-secondary font-medium hover:underline">
-            Create one
+            {t('auth.createOne')}
           </Link>
         </p>
       </div>

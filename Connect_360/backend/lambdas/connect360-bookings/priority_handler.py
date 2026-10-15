@@ -48,6 +48,54 @@ import matching_service
 # How long a worker has to respond to an offer before it is considered expired.
 OFFER_TIMEOUT_SECONDS = int(os.environ.get("PRIORITY_OFFER_TIMEOUT_SECONDS", "120"))
 
+# How long a worker's shared LIVE location stays "fresh" enough to be used for
+# proximity matching. Beyond this, we fall back to their registered location.
+WORKER_LIVE_LOC_TTL_SECONDS = int(os.environ.get("WORKER_LIVE_LOC_TTL_SECONDS", "600"))  # 10 min
+
+
+def _coerce_coord(v):
+    """Validate a latitude/longitude value; return float or None."""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if -180.0 <= f <= 180.0 else None
+
+
+def _coords_fresh(ts, ttl_seconds):
+    if not ts:
+        return False
+    try:
+        t = datetime.fromisoformat(str(ts))
+    except (ValueError, TypeError):
+        return False
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - t).total_seconds() <= ttl_seconds
+
+
+def _select_worker_coords(profile):
+    """
+    Choose which coordinates to use for distance matching:
+      1. Fresh LIVE location (live_lat/live_lng updated within the TTL)  -> 'live'
+      2. Registered home location (home_lat/home_lng)                    -> 'registered'
+      3. None (fall back to city heuristic in the scorer)
+    """
+    live_lat = profile.get('live_lat')
+    live_lng = profile.get('live_lng')
+    if live_lat is not None and live_lng is not None and \
+            _coords_fresh(profile.get('live_location_at'), WORKER_LIVE_LOC_TTL_SECONDS):
+        return live_lat, live_lng, 'live'
+
+    home_lat = profile.get('home_lat')
+    home_lng = profile.get('home_lng')
+    if home_lat is not None and home_lng is not None:
+        return home_lat, home_lng, 'registered'
+
+    return None, None, None
+
 TABLE_NAME = os.environ.get("DYNAMODB_TABLE", "connect360-main-dev")
 
 # Priority-specific statuses (manual statuses reused for the confirmed path)
@@ -91,10 +139,14 @@ class _DynamoDataProvider:
         if not user or not profile:
             return None
         service_items = query_items(f'USER#{user_id}', sk_begins_with='SERVICE#')
+        lat, lng, source = _select_worker_coords(profile)
         return decimal_to_float({
             'id': user_id,
             'full_name': user.get('full_name'),
             'city': user.get('city'),
+            'lat': lat,
+            'lng': lng,
+            'location_source': source,  # 'live' | 'registered' | None
             'experience_years': profile.get('experience_years', 0),
             'hourly_rate': profile.get('hourly_rate', 0),
             'rating_avg': profile.get('rating_avg', 0),
@@ -219,6 +271,10 @@ def _run_match_and_offer(booking, attempted):
         'duration_hours': booking.get('duration_hours', 1),
         'city': booking.get('city'),
         'location': booking.get('address'),
+        # Customer coordinates (geocoded on the client) enable real haversine
+        # proximity matching against the worker's live/registered location.
+        'lat': booking.get('lat'),
+        'lng': booking.get('lng'),
         'budget_min': booking.get('budget_min'),
         'budget_max': booking.get('budget_max'),
     }
@@ -385,6 +441,9 @@ def create_priority_booking(event):
         'duration_hours': float(body.get('duration_hours', 1) or 1),
         'address': (body.get('address') or '').strip(),
         'city': (body.get('city') or customer_user.get('city', '') if customer_user else '') or '',
+        # Customer coordinates (client-geocoded or from device GPS) for proximity.
+        'lat': _coerce_coord(body.get('lat')),
+        'lng': _coerce_coord(body.get('lng')),
         'notes': body.get('special_requirements', '') or body.get('notes', ''),
         'total_amount': 0,
         'customer_name': customer_user.get('full_name', '') if customer_user else '',

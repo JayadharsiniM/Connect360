@@ -13,15 +13,20 @@ const statusConfig = {
   expired: { label: 'Expired', className: 'badge-cancelled', icon: 'timer_off' },
 };
 
+import { useTranslation } from 'react-i18next';
+
 export default function StatusBadge({ status }) {
+  const { t } = useTranslation();
   const config = statusConfig[status] || { label: status, className: 'badge-cancelled', icon: 'help' };
+  // Translate when we have a key for this status; fall back to the English label.
+  const label = statusConfig[status] ? t(`status.${status}`, config.label) : config.label;
 
   return (
     <span className={`badge ${config.className}`}>
       <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>
         {config.icon}
       </span>
-      {config.label}
+      {label}
     </span>
   );
 }

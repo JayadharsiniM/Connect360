@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function VerifyEmail() {
+  const { t } = useTranslation();
   const { confirmEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,7 +21,7 @@ export default function VerifyEmail() {
       await confirmEmail(email, code);
       navigate('/login', { state: { verified: true } });
     } catch (err) {
-      setError(err.message || 'Invalid verification code');
+      setError(err.message || t('auth.invalidCode'));
     } finally {
       setLoading(false);
     }
@@ -35,9 +37,9 @@ export default function VerifyEmail() {
               mark_email_read
             </span>
           </div>
-          <h1 className="font-manrope text-headline-lg-mobile text-primary">Verify your email</h1>
+          <h1 className="font-manrope text-headline-lg-mobile text-primary">{t('auth.verifyEmail')}</h1>
           <p className="font-hanken text-body-md text-on-surface-variant">
-            We sent a verification code to
+            {t('auth.verifySentTo')}
             {email && <span className="font-medium text-on-surface block mt-1">{email}</span>}
           </p>
         </div>
@@ -53,12 +55,12 @@ export default function VerifyEmail() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Verification Code</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.verificationCode')}</label>
             <input
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="Enter 6-digit code"
+              placeholder={t('auth.enter6Digit')}
               className="input-field text-center text-headline-sm tracking-[0.3em]"
               maxLength={6}
               required
@@ -69,21 +71,21 @@ export default function VerifyEmail() {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                Verifying...
+                {t('auth.verifying')}
               </span>
             ) : (
-              'Verify Email'
+              t('auth.verifyEmailBtn')
             )}
           </button>
         </form>
 
         <p className="font-hanken text-body-sm text-on-surface-variant text-center">
-          Didn't receive the code?{' '}
-          <button className="text-secondary font-medium hover:underline">Resend</button>
+          {t('auth.didntReceive')}{' '}
+          <button className="text-secondary font-medium hover:underline">{t('auth.resend')}</button>
         </p>
 
         <Link to="/login" className="font-hanken text-body-sm text-on-surface-variant text-center hover:text-secondary">
-          ← Back to login
+          ← {t('auth.backToLogin')}
         </Link>
       </div>
     </div>

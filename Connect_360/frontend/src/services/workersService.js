@@ -18,4 +18,9 @@ export const workersService = isMock ? mockApi.workers : {
   // Worker availability
   getAvailability: () => api.get('/worker/availability'),
   setAvailability: (schedule) => api.put('/worker/availability', { schedule }),
+
+  // Worker live location (for Priority proximity matching).
+  // mode: 'live' (default, time-sensitive) or 'home' (registered fallback).
+  updateLocation: (latitude, longitude, mode = 'live') =>
+    api.post('/worker/location', { latitude, longitude, mode }),
 };

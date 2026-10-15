@@ -22,9 +22,30 @@ let bookings = [...mockBookings];
 let reviews = [...mockReviews];
 let verifications = [...mockVerifications];
 let trackingLocations = {};
+// Tracks which overdue reminders the worker dismissed (mock-only, per session).
+const readNotifications = new Set();
+// In-memory payment records keyed by booking id (mock-only, per session).
+const mockPayments = {};
+// In-memory arrival-OTP records keyed by booking id (mock-only, per session).
+const mockOtps = {};
+function mockGenOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
 
 // Helper to wrap response like axios
 const resp = (data) => ({ data });
+
+// Overdue = still owes work (pending/accepted/in_progress) AND scheduled time
+// is in the past. Mirrors the backend reminders_handler._is_overdue logic.
+const OVERDUE_STATUSES = ['pending', 'accepted', 'in_progress'];
+function isOverdue(b) {
+  if (!OVERDUE_STATUSES.includes(b.status)) return false;
+  if (!b.scheduled_date) return false;
+  const timePart = b.scheduled_time && /^\d{1,2}:\d{2}/.test(b.scheduled_time) ? b.scheduled_time : '23:59';
+  const scheduled = new Date(`${String(b.scheduled_date).slice(0, 10)}T${timePart}:00Z`);
+  if (Number.isNaN(scheduled.getTime())) return false;
+  return Date.now() >= scheduled.getTime();
+}
 
 // =============================================================================
 // Mock API handlers - match the real service layer interface
@@ -123,6 +144,10 @@ export const mockApi = {
       await delay(500);
       return resp({ message: 'Availability updated successfully' });
     },
+    updateLocation: async (latitude, longitude, mode = 'live') => {
+      await delay(300);
+      return resp({ message: 'Location updated', mode });
+    },
   },
 
   // --- Bookings ---
@@ -147,6 +172,8 @@ export const mockApi = {
       await delay();
       let result = bookings.filter((b) => b.customer_id === 'c1000000-0000-0000-0000-000000000001');
       if (status) result = result.filter((b) => b.status === status);
+      // Most recently booked first (match backend ordering).
+      result = [...result].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
       return resp({ bookings: result, count: result.length });
     },
     getById: async (id) => {
@@ -227,6 +254,275 @@ export const mockApi = {
         worker_id: b?.worker_id || null,
         worker_name: b?.worker_name || 'Assigned Specialist',
       });
+    },
+    // Arrival OTP (Ola/Uber-style) — mock implementation.
+    getArrivalOtp: async (bookingId) => {
+      await delay(200);
+      const b = bookings.find((bk) => (bk.id === bookingId || bk.booking_id === bookingId));
+      if (!b) { const e = new Error('nf'); e.response = { status: 404, data: { error: 'Booking not found' } }; throw e; }
+      let rec = mockOtps[bookingId];
+      if (b.status !== 'accepted') {
+        if (rec && rec.verified) return resp({ otp: null, status: 'verified', verified: true, valid: false, message: 'Arrival already verified.' });
+        return resp({ otp: null, status: b.status, valid: false, message: 'Arrival verification is no longer required.' });
+      }
+      const now = Date.now();
+      if (!rec || now >= rec.expires) {
+        rec = { code: mockGenOtp(), expires: now + 900000, attempts: 0, verified: false, lastRegen: now };
+        mockOtps[bookingId] = rec;
+      }
+      return resp({
+        otp: rec.verified ? null : rec.code,
+        status: rec.verified ? 'verified' : 'active',
+        valid: !rec.verified,
+        verified: rec.verified,
+        expires_at: new Date(rec.expires).toISOString(),
+        seconds_remaining: Math.max(0, Math.round((rec.expires - now) / 1000)),
+      });
+    },
+    regenerateArrivalOtp: async (bookingId) => {
+      await delay(300);
+      const now = Date.now();
+      const prev = mockOtps[bookingId];
+      if (prev && now - prev.lastRegen < 30000) {
+        const e = new Error('cooldown');
+        e.response = { status: 429, data: { error: `Please wait ${30 - Math.round((now - prev.lastRegen) / 1000)}s before requesting a new code.` } };
+        throw e;
+      }
+      const rec = { code: mockGenOtp(), expires: now + 900000, attempts: 0, verified: false, lastRegen: now };
+      mockOtps[bookingId] = rec;
+      return resp({ otp: rec.code, status: 'active', valid: true, verified: false, expires_at: new Date(rec.expires).toISOString(), seconds_remaining: 900 });
+    },
+    verifyArrivalOtp: async (bookingId, otp) => {
+      await delay(400);
+      const b = bookings.find((bk) => (bk.id === bookingId || bk.booking_id === bookingId));
+      if (!b) { const e = new Error('nf'); e.response = { status: 404, data: { error: 'Booking not found' } }; throw e; }
+      if (b.status === 'in_progress') return resp({ verified: true, status: 'in_progress', message: 'Arrival already verified.' });
+      if (b.status !== 'accepted') { const e = new Error('x'); e.response = { status: 409, data: { error: 'This booking is not awaiting arrival verification.' } }; throw e; }
+      const rec = mockOtps[bookingId];
+      if (!rec || Date.now() >= rec.expires) { const e = new Error('x'); e.response = { status: 410, data: { error: 'The code has expired. Ask the customer to regenerate it.' } }; throw e; }
+      if (String(otp).trim() !== rec.code) {
+        rec.attempts += 1;
+        const e = new Error('x'); e.response = { status: 400, data: { error: `Incorrect code. ${Math.max(0, 5 - rec.attempts)} attempt(s) left.` } }; throw e;
+      }
+      rec.verified = true; rec.code = null;
+      b.status = 'in_progress';
+      return resp({ verified: true, status: 'in_progress', message: 'Arrival verified. You can start the service.' });
+    },
+    // Overdue monitoring (Enhancement). Computed dynamically so marking a job
+    // complete immediately removes it from the overdue list in mock mode.
+    listWorkerOverdue: async () => {
+      await delay(200);
+      const list = bookings
+        .filter((b) => b.worker_id === 'w1000000-0000-0000-0000-000000000001')
+        .filter(isOverdue)
+        .map((b) => ({
+          booking_id: b.id || b.booking_id,
+          booking_type: b.booking_type || 'manual',
+          customer_name: b.customer_name,
+          service_name: b.service_name,
+          scheduled_date: b.scheduled_date,
+          scheduled_time: b.scheduled_time,
+          status: b.status,
+          address: b.address,
+          total_amount: b.total_amount,
+          overdue_since: b.overdue_since || `${b.scheduled_date}T${b.scheduled_time || '23:59'}:00Z`,
+        }));
+      return resp({ overdue_bookings: list, count: list.length });
+    },
+    listAdminOverdue: async () => {
+      await delay(200);
+      const list = bookings.filter(isOverdue).map((b) => ({
+        id: b.id || b.booking_id,
+        booking_type: b.booking_type || 'manual',
+        service_name: b.service_name,
+        customer_name: b.customer_name,
+        worker_name: b.worker_name,
+        scheduled_date: b.scheduled_date,
+        scheduled_time: b.scheduled_time,
+        status: b.status,
+        total_amount: b.total_amount,
+        overdue_since: b.overdue_since || `${b.scheduled_date}T${b.scheduled_time || '23:59'}:00Z`,
+      }));
+      return resp({ overdue_bookings: list, count: list.length });
+    },
+  },
+
+  // --- Payments (Razorpay TEST MODE simulation) ---
+  // Payment state is kept separate from booking state and persists in-memory
+  // for the session so dashboards stay consistent.
+  payments: {
+    createOrder: async (bookingId) => {
+      await delay(400);
+      const b = bookings.find((bk) => (bk.id === bookingId || bk.booking_id === bookingId));
+      if (!b) {
+        const err = new Error('Booking not found');
+        err.response = { status: 404, data: { error: 'Booking not found' } };
+        throw err;
+      }
+      if (!['accepted', 'in_progress', 'completed'].includes(b.status)) {
+        const err = new Error('Not payable');
+        err.response = { status: 409, data: { error: 'This booking is not eligible for payment yet' } };
+        throw err;
+      }
+      const existing = mockPayments[bookingId];
+      if (existing && ['SUCCESSFUL', 'AUTHORIZED'].includes(existing.status)) {
+        const err = new Error('Already paid');
+        err.response = { status: 409, data: { error: 'This booking is already paid or being processed' } };
+        throw err;
+      }
+      const amount = Math.round((b.total_amount || 0) * 100);
+      const orderId = `order_mock_${Date.now()}`;
+      mockPayments[bookingId] = {
+        booking_id: bookingId,
+        status: 'PENDING',
+        amount,
+        currency: 'INR',
+        razorpay_order_id: orderId,
+        attempt: existing ? (existing.attempt || 1) + 1 : 1,
+        created_at: new Date().toISOString(),
+      };
+      return resp({
+        key_id: 'rzp_test_mock',
+        razorpay_order_id: orderId,
+        amount,
+        currency: 'INR',
+        payment_id: `pay_rec_${Date.now()}`,
+        booking: { booking_id: bookingId, service_name: b.service_name, amount_display: b.total_amount },
+      });
+    },
+    verify: async (payload) => {
+      await delay(400);
+      const bookingId = payload.booking_id;
+      const p = mockPayments[bookingId];
+      if (!p) {
+        const err = new Error('No payment');
+        err.response = { status: 404, data: { error: 'No payment found for this booking' } };
+        throw err;
+      }
+      // Mock: a non-"mock_signature" value simulates a signature failure.
+      if (payload.razorpay_signature !== 'mock_signature') {
+        p.status = 'FAILED';
+        const err = new Error('Signature failed');
+        err.response = { status: 400, data: { error: 'Payment signature verification failed' } };
+        throw err;
+      }
+      p.status = 'SUCCESSFUL';
+      p.razorpay_payment_id = payload.razorpay_payment_id;
+      p.captured_at = new Date().toISOString();
+      // Commission split (mirrors backend COMMISSION_RATE default 10%).
+      const rate = 0.10;
+      p.commission_rate = rate;
+      p.commission_amount = Math.round(p.amount * rate);
+      p.worker_payout = p.amount - p.commission_amount;
+      p.settlement_status = 'settled';
+      return resp({
+        status: 'SUCCESSFUL',
+        message: 'Payment successful',
+        payment: { ...p, amount_display: p.amount / 100 },
+      });
+    },
+    getStatus: async (bookingId) => {
+      await delay(200);
+      const p = mockPayments[bookingId];
+      return resp({
+        booking_id: bookingId,
+        payment_status: p ? p.status : 'NONE',
+        payment: p ? { ...p, amount_display: p.amount / 100 } : null,
+      });
+    },
+    listAdmin: async (status) => {
+      await delay(300);
+      let list = Object.values(mockPayments);
+      if (status) list = list.filter((p) => p.status === status);
+      const withNames = list.map((p) => {
+        const b = bookings.find((bk) => (bk.id === p.booking_id || bk.booking_id === p.booking_id)) || {};
+        return {
+          ...p,
+          amount_display: p.amount / 100,
+          customer_name: b.customer_name || 'Customer',
+          worker_name: b.worker_name || '',
+          service_name: b.service_name || '',
+        };
+      });
+      return resp({ payments: withNames, count: withNames.length });
+    },
+    // Worker earnings dashboard (mock): payments for the mock worker's bookings.
+    listWorker: async () => {
+      await delay(300);
+      const workerId = 'w1000000-0000-0000-0000-000000000001';
+      const month = new Date().toISOString().slice(0, 7);
+      let totalEarned = 0; let thisMonth = 0; let pending = 0; let completed = 0;
+      const items = [];
+      Object.values(mockPayments).forEach((p) => {
+        const b = bookings.find((bk) => (bk.id === p.booking_id || bk.booking_id === p.booking_id));
+        if (!b || b.worker_id !== workerId) return;
+        const net = (p.amount - (p.refunded_amount || 0)) / 100;
+        if (p.status === 'SUCCESSFUL') {
+          totalEarned += net; completed += 1;
+          if ((p.captured_at || '').slice(0, 7) === month) thisMonth += net;
+        } else if (p.status === 'PENDING' || p.status === 'AUTHORIZED') {
+          pending += p.amount / 100;
+        }
+        items.push({
+          booking_id: p.booking_id,
+          status: p.status,
+          amount: p.amount,
+          amount_display: p.amount / 100,
+          currency: p.currency || 'INR',
+          razorpay_order_id: p.razorpay_order_id,
+          razorpay_payment_id: p.razorpay_payment_id,
+          captured_at: p.captured_at,
+          created_at: p.created_at,
+          refunded_amount: p.refunded_amount || 0,
+          service_name: b.service_name || '',
+          customer_name: b.customer_name || 'Customer',
+          scheduled_date: b.scheduled_date || '',
+          scheduled_time: b.scheduled_time || '',
+        });
+      });
+      return resp({
+        payments: items,
+        count: items.length,
+        summary: {
+          total_earned: totalEarned,
+          this_month: thisMonth,
+          pending,
+          completed_payments: completed,
+          currency: 'INR',
+        },
+      });
+    },
+  },
+
+  // --- Notifications (Enhancement) ---
+  // Overdue reminders are derived from overdue bookings so they stay in sync
+  // with status changes; priority alerts are omitted in mock mode.
+  notifications: {
+    list: async () => {
+      await delay(150);
+      const notifs = bookings
+        .filter((b) => b.worker_id === 'w1000000-0000-0000-0000-000000000001')
+        .filter(isOverdue)
+        .map((b) => ({
+          notification_id: `NOTIF#OVERDUE#${b.id || b.booking_id}`,
+          kind: 'booking_overdue',
+          booking_id: b.id || b.booking_id,
+          service_name: b.service_name,
+          customer_name: b.customer_name,
+          scheduled_date: b.scheduled_date,
+          scheduled_time: b.scheduled_time,
+          booking_status: b.status,
+          message: `Booking for ${b.service_name} with ${b.customer_name} on ${b.scheduled_date} is overdue. Please update its status or mark it completed.`,
+          read: readNotifications.has(`NOTIF#OVERDUE#${b.id || b.booking_id}`),
+          created_at: b.overdue_since || `${b.scheduled_date}T${b.scheduled_time || '23:59'}:00Z`,
+        }))
+        .filter((n) => !n.read);
+      return resp({ notifications: notifs, count: notifs.length, unread_count: notifs.length });
+    },
+    markRead: async (notificationId) => {
+      await delay(100);
+      readNotifications.add(notificationId);
+      return resp({ message: 'Notification marked as read' });
     },
   },
 
@@ -416,6 +712,82 @@ export const mockApi = {
       await delay();
       return resp({ message: 'User updated (mock)', user: { id, ...changes } });
     },
+    listPayments: async (status) => {
+      await delay(300);
+      let list = Object.values(mockPayments);
+      if (status) list = list.filter((p) => p.status === status);
+      const withNames = list.map((p) => {
+        const b = bookings.find((bk) => (bk.id === p.booking_id || bk.booking_id === p.booking_id)) || {};
+        return {
+          ...p,
+          amount_display: p.amount / 100,
+          commission_display: (p.commission_amount || 0) / 100,
+          worker_payout_display: (p.worker_payout || 0) / 100,
+          customer_name: b.customer_name || 'Customer',
+          worker_name: b.worker_name || '',
+          service_name: b.service_name || '',
+        };
+      });
+      return resp({ payments: withNames, count: withNames.length });
+    },
+    getPaymentAnalytics: async () => {
+      await delay(300);
+      const captured = ['SUCCESSFUL', 'REFUNDED', 'PARTIALLY_REFUNDED'];
+      let gmv = 0; let commission = 0; let payouts = 0; let pending = 0; let refunded = 0; let count = 0;
+      const byCat = {}; const byMonth = {};
+      Object.values(mockPayments).forEach((p) => {
+        const b = bookings.find((bk) => (bk.id === p.booking_id || bk.booking_id === p.booking_id)) || {};
+        if (captured.includes(p.status)) {
+          gmv += p.amount;
+          commission += p.commission_amount || 0;
+          payouts += p.worker_payout != null ? p.worker_payout : p.amount;
+          refunded += p.refunded_amount || 0;
+          count += 1;
+          const svc = b.service_name || 'Other';
+          byCat[svc] = (byCat[svc] || 0) + p.amount;
+          const m = (p.captured_at || p.created_at || '').slice(0, 7);
+          if (m) byMonth[m] = (byMonth[m] || 0) + p.amount;
+        } else if (['PENDING', 'AUTHORIZED'].includes(p.status)) {
+          pending += p.amount;
+        }
+      });
+      const rupees = (x) => Math.round(x) / 100;
+      const by_category = Object.entries(byCat)
+        .map(([name, v]) => ({ name, amount: rupees(v), pct: gmv ? Math.round((v / gmv) * 1000) / 10 : 0 }))
+        .sort((a, b) => b.amount - a.amount);
+      const trend = Object.entries(byMonth).sort().map(([m, v]) => ({ month: m, gmv: rupees(v) }));
+      let growth_pct = null;
+      if (trend.length >= 2 && trend[trend.length - 2].gmv > 0) {
+        const prev = trend[trend.length - 2].gmv; const curr = trend[trend.length - 1].gmv;
+        growth_pct = Math.round(((curr - prev) / prev) * 1000) / 10;
+      }
+      return resp({
+        summary: {
+          gmv: rupees(gmv), commission: rupees(commission), payouts: rupees(payouts),
+          pending: rupees(pending), refunded: rupees(refunded), captured_count: count,
+          effective_take_rate: gmv ? Math.round((commission / gmv) * 10000) / 100 : 0,
+          growth_pct, currency: 'INR',
+        },
+        by_category,
+        trend,
+      });
+    },
+    listOverdueBookings: async () => {
+      await delay();
+      const list = bookings.filter(isOverdue).map((b) => ({
+        id: b.id || b.booking_id,
+        booking_type: b.booking_type || 'manual',
+        service_name: b.service_name,
+        customer_name: b.customer_name,
+        worker_name: b.worker_name,
+        scheduled_date: b.scheduled_date,
+        scheduled_time: b.scheduled_time,
+        status: b.status,
+        total_amount: b.total_amount,
+        overdue_since: b.overdue_since || `${b.scheduled_date}T${b.scheduled_time || '23:59'}:00Z`,
+      }));
+      return resp({ overdue_bookings: list, count: list.length });
+    },
     getRevenue: async () => {
       await delay();
       const total = mockDashboardStats?.stats?.revenue?.total_revenue || 1000;
@@ -426,13 +798,21 @@ export const mockApi = {
         transactions: [],
       });
     },
-    listVerifications: async () => {
+    listVerifications: async (status = 'pending') => {
       await delay();
-      return resp({ verifications: [] });
+      // Mirror the backend: filter the shared verifications array by status.
+      const list = status ? verifications.filter((v) => v.status === status) : verifications;
+      return resp({ verifications: list, count: list.length });
     },
-    reviewVerification: async (id, payload) => {
+    reviewVerification: async (id, payload = {}) => {
       await delay();
-      return resp({ message: 'Reviewed (mock)', id, ...payload });
+      const doc = verifications.find((v) => v.id === id);
+      if (doc) {
+        doc.status = payload.action === 'approve' ? 'approved' : 'rejected';
+        doc.admin_notes = payload.notes || '';
+        doc.reviewed_at = new Date().toISOString();
+      }
+      return resp({ message: `Document ${doc?.status || 'reviewed'}`, status: doc?.status });
     },
   },
 

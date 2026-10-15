@@ -1044,6 +1044,183 @@ resource "aws_api_gateway_integration_response" "cors" {
 }
 
 # =============================================================================
+# OVERDUE MONITORING + NOTIFICATIONS (Enhancement)
+#   GET  /api/notifications                 -> bookings Lambda
+#   PUT  /api/notifications/{id}/read        -> bookings Lambda
+#   GET  /api/worker/overdue-bookings        -> bookings Lambda
+#   GET  /api/admin/overdue-bookings         -> admin Lambda
+# =============================================================================
+
+# /api/notifications
+resource "aws_api_gateway_resource" "notifications" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "notifications"
+}
+
+resource "aws_api_gateway_resource" "notifications_id" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.notifications.id
+  path_part   = "{id}"
+}
+
+resource "aws_api_gateway_resource" "notifications_id_read" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.notifications_id.id
+  path_part   = "read"
+}
+
+# GET /api/notifications
+resource "aws_api_gateway_method" "notifications_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.notifications.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "notifications_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.notifications.id
+  http_method             = aws_api_gateway_method.notifications_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# PUT /api/notifications/{id}/read
+resource "aws_api_gateway_method" "notifications_id_read_put" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.notifications_id_read.id
+  http_method   = "PUT"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "notifications_id_read_put" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.notifications_id_read.id
+  http_method             = aws_api_gateway_method.notifications_id_read_put.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# /api/worker/overdue-bookings
+resource "aws_api_gateway_resource" "worker_overdue_bookings" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.worker.id
+  path_part   = "overdue-bookings"
+}
+
+resource "aws_api_gateway_method" "worker_overdue_bookings_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.worker_overdue_bookings.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "worker_overdue_bookings_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.worker_overdue_bookings.id
+  http_method             = aws_api_gateway_method.worker_overdue_bookings_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.bookings.invoke_arn
+}
+
+# /api/admin/overdue-bookings
+resource "aws_api_gateway_resource" "admin_overdue_bookings" {
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  parent_id   = aws_api_gateway_resource.admin.id
+  path_part   = "overdue-bookings"
+}
+
+resource "aws_api_gateway_method" "admin_overdue_bookings_get" {
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = aws_api_gateway_resource.admin_overdue_bookings.id
+  http_method   = "GET"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito.id
+}
+
+resource "aws_api_gateway_integration" "admin_overdue_bookings_get" {
+  rest_api_id             = aws_api_gateway_rest_api.main.id
+  resource_id             = aws_api_gateway_resource.admin_overdue_bookings.id
+  http_method             = aws_api_gateway_method.admin_overdue_bookings_get.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "POST"
+  uri                     = aws_lambda_function.admin.invoke_arn
+}
+
+# CORS (OPTIONS) for the enhancement resources
+locals {
+  reminder_cors_resources = {
+    notifications           = aws_api_gateway_resource.notifications.id
+    notifications_id_read   = aws_api_gateway_resource.notifications_id_read.id
+    worker_overdue_bookings = aws_api_gateway_resource.worker_overdue_bookings.id
+    admin_overdue_bookings  = aws_api_gateway_resource.admin_overdue_bookings.id
+  }
+}
+
+resource "aws_api_gateway_method" "reminder_cors" {
+  for_each = local.reminder_cors_resources
+
+  rest_api_id   = aws_api_gateway_rest_api.main.id
+  resource_id   = each.value
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "reminder_cors" {
+  for_each = local.reminder_cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.reminder_cors[each.key].http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "reminder_cors" {
+  for_each = local.reminder_cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.reminder_cors[each.key].http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "reminder_cors" {
+  for_each = local.reminder_cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.main.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.reminder_cors[each.key].http_method
+  status_code = aws_api_gateway_method_response.reminder_cors[each.key].status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization,X-Amz-Date,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,PATCH,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+# =============================================================================
 # API Gateway Deployment
 # =============================================================================
 resource "aws_api_gateway_deployment" "main" {
@@ -1106,6 +1283,29 @@ resource "aws_api_gateway_deployment" "main" {
     aws_api_gateway_integration.priority_id_rematch_post,
     aws_api_gateway_integration.priority_id_cancel_put,
     aws_api_gateway_integration.priority_cors,
+    # Overdue monitoring + notifications (Enhancement)
+    aws_api_gateway_integration.notifications_get,
+    aws_api_gateway_integration.notifications_id_read_put,
+    aws_api_gateway_integration.worker_overdue_bookings_get,
+    aws_api_gateway_integration.admin_overdue_bookings_get,
+    aws_api_gateway_integration.reminder_cors,
+    # Razorpay payments (TEST MODE)
+    aws_api_gateway_integration.payments_create_order_post,
+    aws_api_gateway_integration.payments_verify_post,
+    aws_api_gateway_integration.payments_webhook_post,
+    aws_api_gateway_integration.payments_booking_id_get,
+    aws_api_gateway_integration.admin_payments_get,
+    aws_api_gateway_integration.admin_payments_analytics_get,
+    aws_api_gateway_integration.worker_payments_get,
+    aws_api_gateway_integration.payment_cors,
+    # Arrival OTP (Ola/Uber-style)
+    aws_api_gateway_integration.booking_arrival_otp_get,
+    aws_api_gateway_integration.booking_arrival_otp_regen_post,
+    aws_api_gateway_integration.booking_verify_arrival_otp_post,
+    aws_api_gateway_integration.arrival_otp_cors,
+    # Worker live location (proximity matching)
+    aws_api_gateway_integration.worker_location_post,
+    aws_api_gateway_integration.worker_location_cors,
   ]
 }
 

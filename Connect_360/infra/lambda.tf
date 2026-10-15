@@ -51,6 +51,21 @@ locals {
     # Priority Booking (Feature 3): how long a worker offer stays open before
     # it is treated as expired (lazy timeout, evaluated on customer poll/rematch).
     PRIORITY_OFFER_TIMEOUT_SECONDS = var.priority_offer_timeout_seconds
+    # Freshness window (seconds) for a worker's shared live location to be used
+    # for proximity matching before falling back to their registered location.
+    WORKER_LIVE_LOC_TTL_SECONDS = var.worker_live_loc_ttl_seconds
+    # Overdue monitoring (Enhancement): grace period after a booking's scheduled
+    # time before it is flagged overdue, plus the business time-zone offset used
+    # to interpret locally-captured scheduled_date/scheduled_time values.
+    OVERDUE_GRACE_MINUTES     = var.overdue_grace_minutes
+    BOOKING_TZ_OFFSET_MINUTES = var.booking_tz_offset_minutes
+    # Razorpay payments (TEST MODE). Secret VALUES are never here — only the
+    # Secrets Manager name + mode. Empty secret name -> payments report 503.
+    RAZORPAY_MODE          = var.razorpay_mode
+    RAZORPAY_SECRET_NAME   = var.razorpay_secret_name
+    RAZORPAY_SECRET_REGION = var.aws_region
+    PAYMENT_CURRENCY       = var.payment_currency
+    COMMISSION_RATE        = var.commission_rate
   })
 
   # Assistant Lambda additionally gets Bedrock AI config (Feature 2).

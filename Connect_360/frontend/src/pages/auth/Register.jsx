@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export default function Register() {
+  const { t } = useTranslation();
   const { register } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,11 +27,11 @@ export default function Register() {
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsNoMatch'));
       return;
     }
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('auth.passwordTooShort'));
       return;
     }
 
@@ -38,7 +40,7 @@ export default function Register() {
       await register(formData.email, formData.password, formData.fullName, formData.role);
       navigate('/verify-email', { state: { email: formData.email } });
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || t('auth.registrationFailed'));
     } finally {
       setLoading(false);
     }
@@ -54,9 +56,9 @@ export default function Register() {
               person_add
             </span>
           </div>
-          <h1 className="font-manrope text-headline-lg-mobile text-primary">Create account</h1>
+          <h1 className="font-manrope text-headline-lg-mobile text-primary">{t('auth.createAccount')}</h1>
           <p className="font-hanken text-body-md text-on-surface-variant">
-            Join Connect360 as a {formData.role}
+            {t('auth.joinAs', { role: formData.role === 'worker' ? t('auth.worker') : t('auth.customer') })}
           </p>
         </div>
 
@@ -72,7 +74,7 @@ export default function Register() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-stack-md">
           {/* Role Toggle */}
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">I want to</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.iWantTo')}</label>
             <div className="grid grid-cols-2 gap-2 p-1 bg-surface-container rounded-lg">
               <button
                 type="button"
@@ -83,7 +85,7 @@ export default function Register() {
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                Hire professionals
+                {t('auth.hireProfessionals')}
               </button>
               <button
                 type="button"
@@ -94,58 +96,58 @@ export default function Register() {
                     : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                Offer services
+                {t('auth.offerServices')}
               </button>
             </div>
           </div>
 
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Full Name</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.fullName')}</label>
             <input
               type="text"
               name="fullName"
               value={formData.fullName}
               onChange={handleChange}
-              placeholder="John Doe"
+              placeholder={t('auth.fullNamePlaceholder')}
               className="input-field"
               required
             />
           </div>
 
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Email</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.email')}</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="you@example.com"
+              placeholder={t('auth.emailPlaceholder')}
               className="input-field"
               required
             />
           </div>
 
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Password</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.password')}</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Min. 8 characters"
+              placeholder={t('auth.minChars')}
               className="input-field"
               required
             />
           </div>
 
           <div className="flex flex-col gap-stack-xs">
-            <label className="font-hanken text-label-md text-on-surface">Confirm Password</label>
+            <label className="font-hanken text-label-md text-on-surface">{t('auth.confirmPassword')}</label>
             <input
               type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              placeholder="Re-enter password"
+              placeholder={t('auth.reEnterPassword')}
               className="input-field"
               required
             />
@@ -155,18 +157,18 @@ export default function Register() {
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
-                Creating account...
+                {t('auth.creating')}
               </span>
             ) : (
-              'Create Account'
+              t('auth.createAccount')
             )}
           </button>
         </form>
 
         <p className="font-hanken text-body-sm text-on-surface-variant text-center">
-          Already have an account?{' '}
+          {t('auth.haveAccount')}{' '}
           <Link to="/login" className="text-secondary font-medium hover:underline">
-            Sign in
+            {t('auth.signInLink')}
           </Link>
         </p>
       </div>

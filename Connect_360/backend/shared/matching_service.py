@@ -142,21 +142,50 @@ def calculate_service_score(worker, request):
     return 0.0
 
 
+def haversine_km(lat1, lng1, lat2, lng2):
+    """Great-circle distance in km between two lat/lng points, or None if any
+    coordinate is missing/invalid."""
+    import math
+    try:
+        lat1, lng1, lat2, lng2 = float(lat1), float(lng1), float(lat2), float(lng2)
+    except (TypeError, ValueError):
+        return None
+    r = 6371.0  # Earth radius km
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlmb = math.radians(lng2 - lng1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlmb / 2) ** 2
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _score_from_distance(distance_km):
+    """Linear falloff: <=FULL km => 1.0, >=ZERO km => 0.0, interpolated."""
+    if distance_km <= DISTANCE_FULL_SCORE_KM:
+        return 1.0
+    if distance_km >= DISTANCE_ZERO_SCORE_KM:
+        return 0.0
+    span = DISTANCE_ZERO_SCORE_KM - DISTANCE_FULL_SCORE_KM
+    return _clamp01(1.0 - (distance_km - DISTANCE_FULL_SCORE_KM) / span)
+
+
 def calculate_distance_score(worker, request):
     """
-    Distance score. Uses a precomputed distance_km if the caller supplies one on
-    the worker dict, else falls back to a same-city heuristic, else neutral.
-
-    Linear falloff: <= DISTANCE_FULL_SCORE_KM => 1.0, >= DISTANCE_ZERO_SCORE_KM => 0.0
+    Distance score, in priority order:
+      1. Precomputed worker['distance_km'] (if the provider already computed it).
+      2. Real haversine distance from the request's lat/lng to the worker's
+         lat/lng (the worker dict carries whichever coordinates the provider
+         chose: fresh LIVE location preferred, else registered location).
+      3. Same-city heuristic (privacy-safe, no coordinates).
+      4. Neutral when there is no location signal at all.
     """
     distance_km = worker.get("distance_km")
+    if distance_km is None:
+        distance_km = haversine_km(
+            request.get("lat"), request.get("lng"),
+            worker.get("lat"), worker.get("lng"),
+        )
     if distance_km is not None:
-        if distance_km <= DISTANCE_FULL_SCORE_KM:
-            return 1.0
-        if distance_km >= DISTANCE_ZERO_SCORE_KM:
-            return 0.0
-        span = DISTANCE_ZERO_SCORE_KM - DISTANCE_FULL_SCORE_KM
-        return _clamp01(1.0 - (distance_km - DISTANCE_FULL_SCORE_KM) / span)
+        return _score_from_distance(distance_km)
 
     # No coordinates available -> city-based heuristic (privacy-safe, no PII)
     req_city = (request.get("city") or request.get("location") or "").strip().lower()

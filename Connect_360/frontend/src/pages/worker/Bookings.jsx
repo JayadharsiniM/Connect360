@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { bookingsService } from '../../services/bookingsService';
+import { paymentsService } from '../../services/paymentsService';
 import StatusBadge from '../../components/StatusBadge';
+import PaymentStatusBadge from '../../components/PaymentStatusBadge';
 import CallButton from '../../components/CallButton';
+import VerifyArrivalOtp from '../../components/VerifyArrivalOtp';
 import DashboardLayout from '../../components/DashboardLayout';
 
+const PAYABLE = ['accepted', 'in_progress', 'completed'];
+
 export default function WorkerBookings() {
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -13,8 +20,10 @@ export default function WorkerBookings() {
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [payments, setPayments] = useState({}); // bookingId -> status
 
   const statuses = ['', 'pending', 'accepted', 'in_progress', 'completed', 'rejected'];
+  const statusLabel = (s) => (s ? t('status.' + s) : t('workerBookings.all'));
 
   useEffect(() => {
     loadBookings();
@@ -24,17 +33,35 @@ export default function WorkerBookings() {
     setLoading(true);
     try {
       const res = await bookingsService.listWorkerBookings();
-      setBookings(res.data.bookings || []);
+      const list = res.data.bookings || [];
+      setBookings(list);
+      // Workers see a limited, read-only payment status for assigned bookings.
+      const payable = list.filter((b) => PAYABLE.includes(b.status));
+      const results = await Promise.all(payable.map(async (b) => {
+        const id = b.id || b.booking_id;
+        try {
+          const r = await paymentsService.getStatus(id);
+          return [id, r.data.payment_status || 'NONE'];
+        } catch {
+          return [id, 'NONE'];
+        }
+      }));
+      setPayments(Object.fromEntries(results));
     } catch (err) {
-      setError('Failed to load bookings.');
+      setError(t('workerBookings.loadFailed'));
       console.error('Error loading bookings:', err);
     } finally {
       setLoading(false);
     }
   }
 
+  function paymentStatusFor(booking) {
+    const id = booking.id || booking.booking_id;
+    return payments[id];
+  }
+
   async function handleRespond(bookingId, action) {
-    const confirmMsg = action === 'accept' ? 'Accept this booking?' : 'Reject this booking?';
+    const confirmMsg = action === 'accept' ? t('workerBookings.confirmAccept') : t('workerBookings.confirmReject');
     if (!window.confirm(confirmMsg)) return;
 
     setActionLoading(bookingId);
@@ -42,7 +69,7 @@ export default function WorkerBookings() {
       await bookingsService.respondToBooking(bookingId, action);
       loadBookings();
     } catch (err) {
-      alert(err.response?.data?.error || `Failed to ${action} booking`);
+      alert(err.response?.data?.error || t('workerBookings.failedAction', { action }));
     } finally {
       setActionLoading(null);
     }
@@ -54,7 +81,7 @@ export default function WorkerBookings() {
       await bookingsService.updateBookingStatus(bookingId, newStatus);
       loadBookings();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update status');
+      alert(err.response?.data?.error || t('workerBookings.failedUpdate'));
     } finally {
       setActionLoading(null);
     }
@@ -80,30 +107,27 @@ export default function WorkerBookings() {
     return (
       <>
         {(booking.status === 'accepted' || booking.status === 'in_progress') && (
-          <CallButton bookingId={id} status={booking.status} label="Call Customer" />
+          <CallButton bookingId={id} status={booking.status} label={t('workerBookings.callCustomer')} />
         )}
         {booking.status === 'pending' && (
           <>
             <button onClick={() => handleRespond(id, 'accept')} disabled={actionLoading === id} className="btn-primary !py-2 !px-4 flex items-center gap-1.5">
               <span className="material-symbols-outlined text-[16px]">check_circle</span>
-              Accept
+              {t('workerBookings.accept')}
             </button>
             <button onClick={() => handleRespond(id, 'reject')} disabled={actionLoading === id} className="btn-secondary !py-2 !px-4 flex items-center gap-1.5 !text-error !border-error">
               <span className="material-symbols-outlined text-[16px]">cancel</span>
-              Reject
+              {t('workerBookings.reject')}
             </button>
           </>
         )}
         {booking.status === 'accepted' && (
-          <button onClick={() => handleStatusUpdate(id, 'in_progress')} disabled={actionLoading === id} className="btn-primary !py-2 !px-4 flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-[16px]">play_arrow</span>
-            Start Work
-          </button>
+          <VerifyArrivalOtp booking={booking} onVerified={loadBookings} compact />
         )}
         {booking.status === 'in_progress' && (
           <button onClick={() => handleStatusUpdate(id, 'completed')} disabled={actionLoading === id} className="btn-primary !py-2 !px-4 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[16px]">task_alt</span>
-            Mark Complete
+            {t('workerBookings.markComplete')}
           </button>
         )}
         {(booking.booking_type === 'priority' || String(id).startsWith('pri-')) && (
@@ -112,7 +136,7 @@ export default function WorkerBookings() {
             className="btn-secondary !py-2 !px-3 flex items-center gap-1 !text-blue-600 !border-blue-200 hover:!bg-blue-50 text-xs font-bold"
           >
             <span className="material-symbols-outlined text-[16px] text-blue-600">near_me</span>
-            <span>GPS Radar</span>
+            <span>{t('workerBookings.gpsRadar')}</span>
           </Link>
         )}
       </>
@@ -126,10 +150,10 @@ export default function WorkerBookings() {
       {/* ============================================================= */}
       <div className="lg:hidden pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop max-w-container mx-auto flex flex-col gap-stack-lg pb-24">
         <section className="flex flex-col gap-stack-sm">
-          <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">My Bookings</h1>
+          <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">{t('workerBookings.myBookings')}</h1>
           <p className="font-hanken text-body-md text-on-surface-variant">
-            {bookings.length} total bookings
-            {pendingCount > 0 && ` · ${pendingCount} pending response`}
+            {t('workerBookings.totalBookings', { count: bookings.length })}
+            {pendingCount > 0 && ` · ${t('workerBookings.pendingResponse', { count: pendingCount })}`}
           </p>
         </section>
 
@@ -138,13 +162,13 @@ export default function WorkerBookings() {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`flex-none px-4 py-2 rounded-full font-hanken text-body-sm border transition-all whitespace-nowrap capitalize ${
+              className={`flex-none px-4 py-2 rounded-full font-hanken text-body-sm border transition-all whitespace-nowrap ${
                 filter === s
                   ? 'bg-primary-container text-on-primary border-primary-container'
                   : 'bg-surface-container-lowest text-on-surface-variant border-outline-variant hover:bg-surface-container-low'
               }`}
             >
-              {s || 'All'}
+              {statusLabel(s)}
             </button>
           ))}
         </div>
@@ -156,9 +180,9 @@ export default function WorkerBookings() {
         ) : error ? (
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-12 text-center shadow-level-1">
             <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">error</span>
-            <h3 className="font-manrope text-headline-sm text-on-surface mb-2">Error</h3>
+            <h3 className="font-manrope text-headline-sm text-on-surface mb-2">{t('workerBookings.error')}</h3>
             <p className="font-hanken text-body-md text-on-surface-variant">{error}</p>
-            <button onClick={loadBookings} className="btn-primary mt-4">Retry</button>
+            <button onClick={loadBookings} className="btn-primary mt-4">{t('workerBookings.retry')}</button>
           </div>
         ) : filtered.length > 0 ? (
           <div className="flex flex-col gap-stack-md">
@@ -176,12 +200,21 @@ export default function WorkerBookings() {
                       {booking.booking_type === 'priority' && (
                         <span className="badge badge-priority">
                           <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                          Priority
+                          {t('workerBookings.priority')}
                         </span>
                       )}
                       <StatusBadge status={booking.status} />
+                      {booking.overdue_flag && !['completed', 'cancelled', 'rejected'].includes(booking.status) && (
+                        <span className="badge badge-rejected">
+                          <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+                          {t('workerBookings.overdue')}
+                        </span>
+                      )}
+                      {paymentStatusFor(booking) && paymentStatusFor(booking) !== 'NONE' && (
+                        <PaymentStatusBadge status={paymentStatusFor(booking)} />
+                      )}
                     </div>
-                    <p className="font-hanken text-body-sm text-on-surface-variant mt-1">Customer: {booking.customer_name}</p>
+                    <p className="font-hanken text-body-sm text-on-surface-variant mt-1">{t('workerBookings.customerLabel', { name: booking.customer_name })}</p>
                     <div className="flex flex-wrap items-center gap-4 mt-3">
                       <span className="flex items-center gap-1.5 font-hanken text-body-sm text-on-surface-variant">
                         <span className="material-symbols-outlined text-[16px]">calendar_today</span>
@@ -204,36 +237,35 @@ export default function WorkerBookings() {
                       </p>
                     )}
                     {booking.notes && (
-                      <p className="font-hanken text-body-sm text-on-surface-variant mt-1 italic">Note: {booking.notes}</p>
+                      <p className="font-hanken text-body-sm text-on-surface-variant mt-1 italic">{t('workerBookings.noteLabel', { note: booking.notes })}</p>
                     )}
                   </div>
                   <div className="flex flex-col items-stretch gap-2 flex-shrink-0 md:min-w-[180px]">
                     {(booking.status === 'accepted' || booking.status === 'in_progress') && (
-                      <CallButton bookingId={booking.id || booking.booking_id} status={booking.status} label="Call Customer" />
+                      <CallButton bookingId={booking.id || booking.booking_id} status={booking.status} label={t('workerBookings.callCustomer')} />
                     )}
                     <div className="flex items-center gap-2">
                       {booking.status === 'pending' && (
                         <>
                           <button onClick={() => handleRespond(booking.id || booking.booking_id, 'accept')} disabled={actionLoading === (booking.id || booking.booking_id)} className="btn-primary !py-2 !px-4 flex items-center gap-1.5">
                             <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                            Accept
+                            {t('workerBookings.accept')}
                           </button>
                           <button onClick={() => handleRespond(booking.id || booking.booking_id, 'reject')} disabled={actionLoading === (booking.id || booking.booking_id)} className="btn-secondary !py-2 !px-4 flex items-center gap-1.5 !text-error !border-error">
                             <span className="material-symbols-outlined text-[16px]">cancel</span>
-                            Reject
+                            {t('workerBookings.reject')}
                           </button>
                         </>
                       )}
                       {booking.status === 'accepted' && (
-                        <button onClick={() => handleStatusUpdate(booking.id || booking.booking_id, 'in_progress')} disabled={actionLoading === (booking.id || booking.booking_id)} className="btn-primary !py-2 !px-4 flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-[16px]">play_arrow</span>
-                          Start Work
-                        </button>
+                        <div className="w-full">
+                          <VerifyArrivalOtp booking={booking} onVerified={loadBookings} compact />
+                        </div>
                       )}
                       {booking.status === 'in_progress' && (
                         <button onClick={() => handleStatusUpdate(booking.id || booking.booking_id, 'completed')} disabled={actionLoading === (booking.id || booking.booking_id)} className="btn-primary !py-2 !px-4 flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-[16px]">task_alt</span>
-                          Mark Complete
+                          {t('workerBookings.markComplete')}
                         </button>
                       )}
                     </div>
@@ -245,9 +277,9 @@ export default function WorkerBookings() {
         ) : (
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-12 text-center shadow-level-1">
             <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">event_busy</span>
-            <h3 className="font-manrope text-headline-sm text-on-surface mb-2">No bookings found</h3>
+            <h3 className="font-manrope text-headline-sm text-on-surface mb-2">{t('workerBookings.noBookingsFound')}</h3>
             <p className="font-hanken text-body-md text-on-surface-variant">
-              {filter ? `No ${filter} bookings` : 'No bookings yet. They will appear here once customers book your services.'}
+              {filter ? t('workerBookings.noFilterBookings', { filter: statusLabel(filter) }) : t('workerBookings.noBookingsYet')}
             </p>
           </div>
         )}
@@ -260,9 +292,9 @@ export default function WorkerBookings() {
         {/* Header */}
         <div className="flex justify-between items-center gap-4">
           <div>
-            <h2 className="font-manrope text-headline-lg text-on-surface">Bookings Management</h2>
+            <h2 className="font-manrope text-headline-lg text-on-surface">{t('workerBookings.management')}</h2>
             <p className="font-hanken text-body-md text-on-surface-variant mt-1">
-              {bookings.length} total{pendingCount > 0 && ` · ${pendingCount} pending response`}
+              {t('workerBookings.total', { count: bookings.length })}{pendingCount > 0 && ` · ${t('workerBookings.pendingResponse', { count: pendingCount })}`}
             </p>
           </div>
         </div>
@@ -272,23 +304,23 @@ export default function WorkerBookings() {
           {/* Filters column (1/4) */}
           <div className="w-1/4 flex flex-col gap-stack-md">
             <div className="bg-surface-container-lowest rounded-xl border border-outline-slate p-stack-md flex flex-col gap-stack-md sticky top-[80px]">
-              <h3 className="font-manrope text-headline-sm text-primary border-b border-surface-container pb-3">Filters</h3>
+              <h3 className="font-manrope text-headline-sm text-primary border-b border-surface-container pb-3">{t('workerBookings.filters')}</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="font-hanken text-label-sm text-on-surface-variant block mb-2">Date Range</label>
+                  <label className="font-hanken text-label-sm text-on-surface-variant block mb-2">{t('workerBookings.dateRange')}</label>
                   <div className="flex flex-col gap-2">
                     <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full h-11 px-3 border border-outline-slate rounded-lg font-hanken text-body-sm focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none bg-surface" />
                     <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full h-11 px-3 border border-outline-slate rounded-lg font-hanken text-body-sm focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none bg-surface" />
                   </div>
                 </div>
                 <div>
-                  <label className="font-hanken text-label-sm text-on-surface-variant block mb-2">Status</label>
-                  <select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full h-11 px-3 border border-outline-slate rounded-lg font-hanken text-body-sm focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none bg-surface capitalize">
-                    {statuses.map((s) => <option key={s} value={s}>{s || 'All Statuses'}</option>)}
+                  <label className="font-hanken text-label-sm text-on-surface-variant block mb-2">{t('workerBookings.status')}</label>
+                  <select value={filter} onChange={(e) => setFilter(e.target.value)} className="w-full h-11 px-3 border border-outline-slate rounded-lg font-hanken text-body-sm focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none bg-surface">
+                    {statuses.map((s) => <option key={s} value={s}>{s ? t('status.' + s) : t('workerBookings.allStatuses')}</option>)}
                   </select>
                 </div>
                 <button onClick={resetFilters} className="w-full mt-2 bg-surface-container-low border border-outline-slate text-on-surface font-hanken text-label-md h-10 rounded-lg hover:bg-surface-container transition-colors">
-                  Reset Filters
+                  {t('workerBookings.resetFilters')}
                 </button>
               </div>
             </div>
@@ -304,11 +336,11 @@ export default function WorkerBookings() {
                   <button
                     key={s}
                     onClick={() => setFilter(s)}
-                    className={`px-6 py-4 font-hanken text-label-md whitespace-nowrap capitalize transition-colors ${
+                    className={`px-6 py-4 font-hanken text-label-md whitespace-nowrap transition-colors ${
                       filter === s ? 'text-primary border-b-2 border-secondary' : 'text-on-surface-variant hover:text-primary'
                     }`}
                   >
-                    {s || 'All'} ({count})
+                    {statusLabel(s)} ({count})
                   </button>
                 );
               })}
@@ -321,9 +353,9 @@ export default function WorkerBookings() {
             ) : error ? (
               <div className="bg-surface-container-lowest rounded-xl border border-outline-slate p-12 text-center">
                 <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">error</span>
-                <h3 className="font-manrope text-headline-sm text-on-surface mb-2">Error</h3>
+                <h3 className="font-manrope text-headline-sm text-on-surface mb-2">{t('workerBookings.error')}</h3>
                 <p className="font-hanken text-body-md text-on-surface-variant">{error}</p>
-                <button onClick={loadBookings} className="btn-primary mt-4">Retry</button>
+                <button onClick={loadBookings} className="btn-primary mt-4">{t('workerBookings.retry')}</button>
               </div>
             ) : filtered.length > 0 ? (
               <div className="grid grid-cols-1 gap-4">
@@ -358,15 +390,26 @@ export default function WorkerBookings() {
                           {booking.booking_type === 'priority' && (
                             <span className="badge badge-priority">
                               <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                              Priority
+                              {t('workerBookings.priority')}
                             </span>
                           )}
                         </div>
-                        <StatusBadge status={booking.status} />
+                        <div className="flex items-center gap-2">
+                          {paymentStatusFor(booking) && paymentStatusFor(booking) !== 'NONE' && (
+                            <PaymentStatusBadge status={paymentStatusFor(booking)} />
+                          )}
+                          {booking.overdue_flag && !['completed', 'cancelled', 'rejected'].includes(booking.status) && (
+                            <span className="badge badge-rejected">
+                              <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span>
+                              {t('workerBookings.overdue')}
+                            </span>
+                          )}
+                          <StatusBadge status={booking.status} />
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-4 mt-2">
                         <div>
-                          <p className="font-hanken text-label-sm text-on-surface-variant">Scheduled</p>
+                          <p className="font-hanken text-label-sm text-on-surface-variant">{t('workerBookings.scheduled')}</p>
                           <p className="font-hanken text-body-sm text-on-surface font-medium flex items-center gap-1 mt-0.5">
                             <span className="material-symbols-outlined text-[16px]">calendar_today</span>
                             {booking.scheduled_date}{booking.scheduled_time && `, ${booking.scheduled_time}`}
@@ -374,13 +417,13 @@ export default function WorkerBookings() {
                         </div>
                         {booking.total_amount > 0 && (
                           <div>
-                            <p className="font-hanken text-label-sm text-on-surface-variant">Amount</p>
+                            <p className="font-hanken text-label-sm text-on-surface-variant">{t('workerBookings.amount')}</p>
                             <p className="font-hanken text-body-sm text-on-surface font-medium mt-0.5">₹{booking.total_amount}</p>
                           </div>
                         )}
                       </div>
                       {booking.notes && (
-                        <p className="font-hanken text-body-sm text-on-surface-variant mt-2 italic">Note: {booking.notes}</p>
+                        <p className="font-hanken text-body-sm text-on-surface-variant mt-2 italic">{t('workerBookings.noteLabel', { note: booking.notes })}</p>
                       )}
                     </div>
 
@@ -388,7 +431,7 @@ export default function WorkerBookings() {
                     <div className="flex flex-col gap-2 justify-center border-l border-surface-container pl-6 min-w-[160px]">
                       {renderActions(booking)}
                       {!['pending', 'accepted', 'in_progress'].includes(booking.status) && (
-                        <span className="font-hanken text-body-sm text-on-surface-variant text-center">No actions</span>
+                        <span className="font-hanken text-body-sm text-on-surface-variant text-center">{t('workerBookings.noActions')}</span>
                       )}
                     </div>
                   </div>
@@ -397,9 +440,9 @@ export default function WorkerBookings() {
             ) : (
               <div className="bg-surface-container-lowest rounded-xl border border-outline-slate p-12 text-center">
                 <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">event_busy</span>
-                <h3 className="font-manrope text-headline-sm text-on-surface mb-2">No bookings found</h3>
+                <h3 className="font-manrope text-headline-sm text-on-surface mb-2">{t('workerBookings.noBookingsFound')}</h3>
                 <p className="font-hanken text-body-md text-on-surface-variant">
-                  {filter ? `No ${filter} bookings` : 'No bookings yet. They will appear here once customers book your services.'}
+                  {filter ? t('workerBookings.noFilterBookings', { filter: statusLabel(filter) }) : t('workerBookings.noBookingsYet')}
                 </p>
               </div>
             )}

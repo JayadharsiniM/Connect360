@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { assistantService } from '../services/assistantService';
 
@@ -13,6 +14,7 @@ import { assistantService } from '../services/assistantService';
  * - Never displays phone numbers (backend guarantees they're never returned).
  */
 export default function AIAssistant({ bookingId = null }) {
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -28,11 +30,11 @@ export default function AIAssistant({ bookingId = null }) {
     if (open && messages.length === 0) {
       const greeting =
         role === 'worker'
-          ? "Hi! I'm your Connect360 assistant. I can help with job prep, safe troubleshooting, and completion steps. What do you need?"
-          : "Hi! I'm your Connect360 assistant. I can help you troubleshoot, choose a service, or check your booking. How can I help?";
+          ? t('components.assistantGreetingWorker')
+          : t('components.assistantGreetingCustomer');
       setMessages([{ from: 'bot', text: greeting }]);
     }
-  }, [open, role, messages.length]);
+  }, [open, role, messages.length, t]);
 
   // Auto-scroll to newest message
   useEffect(() => {
@@ -45,8 +47,8 @@ export default function AIAssistant({ bookingId = null }) {
 
   const suggestions =
     role === 'worker'
-      ? ['What should I prepare?', 'How do I mark a job complete?', 'Customer AC not cooling']
-      : ['My AC isn\'t cooling', 'When is my technician coming?', 'What services do you offer?'];
+      ? [t('components.assistantSuggWorker1'), t('components.assistantSuggWorker2'), t('components.assistantSuggWorker3')]
+      : [t('components.assistantSuggCust1'), t('components.assistantSuggCust2'), t('components.assistantSuggCust3')];
 
   async function send(text) {
     const question = (text ?? input).trim();
@@ -60,7 +62,7 @@ export default function AIAssistant({ bookingId = null }) {
 
     try {
       const res = await assistantService.chat({ message: question, bookingId, role, history: updatedHistory });
-      const answer = res.data?.answer || 'Sorry, I could not process that.';
+      const answer = res.data?.answer || t('components.assistantCouldNotProcess');
       // Store clean text in history (never raw JSON)
       let historyText = answer;
       try {
@@ -72,7 +74,7 @@ export default function AIAssistant({ bookingId = null }) {
     } catch (err) {
       setMessages((m) => [
         ...m,
-        { from: 'bot', text: 'The assistant is unavailable right now. Please try again later.', error: true },
+        { from: 'bot', text: t('components.assistantUnavailable'), error: true },
       ]);
     } finally {
       setSending(false);
@@ -86,8 +88,8 @@ export default function AIAssistant({ bookingId = null }) {
         <button
           onClick={() => setOpen(true)}
           className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 w-14 h-14 rounded-full bg-primary-container text-on-primary shadow-level-3 flex items-center justify-center hover:opacity-90 active:scale-95 transition-all"
-          title="Ask the assistant"
-          aria-label="Open AI assistant"
+          title={t('components.assistantAsk')}
+          aria-label={t('components.assistantOpen')}
         >
           <span className="material-symbols-outlined text-[26px]" style={{ fontVariationSettings: "'FILL' 1" }}>
             smart_toy
@@ -105,14 +107,14 @@ export default function AIAssistant({ bookingId = null }) {
                 smart_toy
               </span>
               <div>
-                <p className="font-manrope text-label-md">Connect360 Assistant</p>
-                <p className="font-hanken text-label-sm text-on-primary-container capitalize">{role} help</p>
+                <p className="font-manrope text-label-md">{t('components.assistantTitle')}</p>
+                <p className="font-hanken text-label-sm text-on-primary-container capitalize">{t('components.assistantRoleHelp', { role })}</p>
               </div>
             </div>
             <button
               onClick={() => setOpen(false)}
               className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-              aria-label="Close assistant"
+              aria-label={t('components.assistantClose')}
             >
               <span className="material-symbols-outlined text-[22px]">close</span>
             </button>
@@ -169,7 +171,7 @@ export default function AIAssistant({ bookingId = null }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && send()}
-              placeholder="Ask anything..."
+              placeholder={t('components.assistantInputPlaceholder')}
               className="flex-1 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest font-hanken text-body-sm text-on-surface focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20 transition-all"
               disabled={sending}
             />
@@ -177,7 +179,7 @@ export default function AIAssistant({ bookingId = null }) {
               onClick={() => send()}
               disabled={sending || !input.trim()}
               className="w-10 h-10 rounded-lg bg-primary-container text-on-primary flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-40"
-              aria-label="Send"
+              aria-label={t('components.assistantSend')}
             >
               <span className="material-symbols-outlined text-[20px]">send</span>
             </button>
@@ -187,7 +189,7 @@ export default function AIAssistant({ bookingId = null }) {
           <div className="px-3 pb-2 bg-surface-container-lowest flex-shrink-0">
             <p className="font-hanken text-label-sm text-on-surface-variant flex items-center gap-1">
               <span className="material-symbols-outlined text-[13px]">lock</span>
-              Private &amp; role-aware. Contact details are never shared.
+              {t('components.assistantPrivacyNote')}
             </p>
           </div>
         </div>

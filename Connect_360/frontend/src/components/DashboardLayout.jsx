@@ -1,29 +1,33 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import OnlineToggle from './OnlineToggle';
+import LanguageSwitcher from './LanguageSwitcher';
 
 // Role-accurate navigation (keeps all existing routes reachable).
 const sidebarLinks = {
   customer: [
-    { to: '/customer/dashboard', label: 'Overview', icon: 'dashboard' },
-    { to: '/customer/workers', label: 'Find Workers', icon: 'search' },
-    { to: '/customer/bookings', label: 'My Bookings', icon: 'calendar_month' },
-    { to: '/customer/profile', label: 'Profile', icon: 'person' },
+    { to: '/customer/dashboard', label: 'Overview', labelKey: 'nav.overview', icon: 'dashboard' },
+    { to: '/customer/workers', label: 'Find Workers', labelKey: 'nav.findWorkers', icon: 'search' },
+    { to: '/customer/bookings', label: 'My Bookings', labelKey: 'nav.myBookings', icon: 'calendar_month' },
+    { to: '/customer/profile', label: 'Profile', labelKey: 'nav.profile', icon: 'person' },
   ],
   worker: [
-    { to: '/worker/dashboard', label: 'Overview', icon: 'dashboard' },
-    { to: '/worker/bookings', label: 'Bookings', icon: 'calendar_month' },
-    { to: '/worker/availability', label: 'Availability', icon: 'schedule' },
-    { to: '/worker/verification', label: 'Verification', icon: 'verified' },
-    { to: '/worker/profile', label: 'Profile', icon: 'person' },
+    { to: '/worker/dashboard', label: 'Overview', labelKey: 'nav.overview', icon: 'dashboard' },
+    { to: '/worker/bookings', label: 'Bookings', labelKey: 'nav.bookings', icon: 'calendar_month' },
+    { to: '/worker/earnings', label: 'Earnings & Payments', labelKey: 'nav.earnings', icon: 'payments' },
+    { to: '/worker/availability', label: 'Availability', labelKey: 'nav.availability', icon: 'schedule' },
+    { to: '/worker/verification', label: 'Verification', labelKey: 'nav.verification', icon: 'verified' },
+    { to: '/worker/profile', label: 'Profile', labelKey: 'nav.profile', icon: 'person' },
   ],
   admin: [
-    { to: '/admin/dashboard', label: 'Overview', icon: 'analytics' },
-    { to: '/admin/revenue', label: 'Revenue', icon: 'payments' },
-    { to: '/admin/users', label: 'Users', icon: 'group' },
-    { to: '/admin/services', label: 'Services', icon: 'category' },
-    { to: '/admin/verification-queue', label: 'Verification Queue', icon: 'fact_check' },
-    { to: '/admin/verifications', label: 'Review Console', icon: 'rule' },
+    { to: '/admin/dashboard', label: 'Overview', labelKey: 'nav.overview', icon: 'analytics' },
+    { to: '/admin/revenue', label: 'Revenue', labelKey: 'nav.revenue', icon: 'payments' },
+    { to: '/admin/users', label: 'Users', labelKey: 'nav.users', icon: 'group' },
+    { to: '/admin/services', label: 'Services', labelKey: 'nav.services', icon: 'category' },
+    { to: '/admin/verification-queue', label: 'Verifications', labelKey: 'nav.verifications', icon: 'fact_check' },
+    { to: '/admin/verifications', label: 'Review Console', labelKey: 'nav.reviewConsole', icon: 'rule' },
   ],
 };
 
@@ -36,6 +40,7 @@ const sidebarCta = {
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -123,7 +128,7 @@ export default function DashboardLayout({ children }) {
                   >
                     {link.icon}
                   </span>
-                  <span>{link.label}</span>
+                  <span>{link.labelKey ? t(link.labelKey) : link.label}</span>
                 </Link>
               </li>
             );
@@ -171,8 +176,10 @@ export default function DashboardLayout({ children }) {
             </Link>
           </div>
 
-          {/* Right: Notifications, Logout, Profile */}
+          {/* Right: Language, Online toggle (worker), Notifications, Logout, Profile */}
           <div className="flex items-center gap-5">
+            <LanguageSwitcher />
+            {role === 'worker' && <OnlineToggle />}
             <button className="text-on-surface-variant hover:text-secondary transition-colors relative cursor-pointer" title="Notifications">
               <span className="material-symbols-outlined">notifications</span>
               <span className="absolute top-0 right-0 w-2 h-2 bg-error rounded-full" />

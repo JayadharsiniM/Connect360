@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import { workersService } from '../../services/workersService';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -6,6 +7,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function WorkerDetail() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const [worker, setWorker] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -50,8 +52,8 @@ export default function WorkerDetail() {
       <DashboardLayout>
         <div className="pt-6 lg:pt-0 px-margin-mobile lg:px-0 max-w-container mx-auto text-center py-stack-xl">
           <span className="material-symbols-outlined text-on-surface-variant text-[48px]">person_off</span>
-          <h2 className="font-manrope text-headline-sm text-on-surface mt-4">Worker not found</h2>
-          <Link to="/customer/workers" className="btn-secondary mt-4 inline-block">Back to search</Link>
+          <h2 className="font-manrope text-headline-sm text-on-surface mt-4">{t('workerDetail.workerNotFound')}</h2>
+          <Link to="/customer/workers" className="btn-secondary mt-4 inline-block">{t('workerDetail.backToSearch')}</Link>
         </div>
       </DashboardLayout>
     );
@@ -74,7 +76,7 @@ export default function WorkerDetail() {
         {/* Back */}
         <Link to="/customer/workers" className="flex items-center gap-1 font-hanken text-body-sm text-on-surface-variant hover:text-secondary w-fit">
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          Back to search
+          {t('workerDetail.backToSearch')}
         </Link>
 
         {/* Profile Header Bento */}
@@ -97,9 +99,9 @@ export default function WorkerDetail() {
             <div className="relative z-10 flex-grow text-center md:text-left flex flex-col gap-1">
               <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">{worker.full_name}</h1>
               <p className="font-manrope text-headline-sm text-on-surface-variant flex items-center justify-center md:justify-start gap-2">
-                {worker.city || 'Service Professional'}
+                {worker.city || t('workerDetail.serviceProfessional')}
                 {worker.is_verified && (
-                  <span className="px-2 py-0.5 bg-surface-container-low text-primary text-xs rounded-full font-hanken text-label-sm">Verified</span>
+                  <span className="px-2 py-0.5 bg-surface-container-low text-primary text-xs rounded-full font-hanken text-label-sm">{t('workerDetail.verified')}</span>
                 )}
               </p>
 
@@ -107,12 +109,12 @@ export default function WorkerDetail() {
                 <div className="flex items-center gap-1">
                   <span className="material-symbols-outlined text-secondary text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                   <span className="font-manrope text-headline-sm text-primary">{worker.rating_avg || 0}</span>
-                  <span className="font-hanken text-body-sm">({worker.rating_count || 0} Reviews)</span>
+                  <span className="font-hanken text-body-sm">{t('workerDetail.reviewsCount', { count: worker.rating_count || 0 })}</span>
                 </div>
                 {worker.experience_years > 0 && (
                   <div className="flex items-center gap-1">
                     <span className="material-symbols-outlined text-[18px]">work</span>
-                    <span className="font-hanken text-body-sm">{worker.experience_years} yrs experience</span>
+                    <span className="font-hanken text-body-sm">{t('workerDetail.yrsExperience', { count: worker.experience_years })}</span>
                   </div>
                 )}
               </div>
@@ -133,20 +135,20 @@ export default function WorkerDetail() {
           {/* Quick Action / Booking Card */}
           <div className="bg-primary-container text-on-primary-container rounded-xl p-stack-lg flex flex-col justify-between shadow-level-3">
             <div>
-              <h3 className="font-manrope text-headline-md text-on-primary mb-stack-sm">Book Service</h3>
+              <h3 className="font-manrope text-headline-md text-on-primary mb-stack-sm">{t('workerDetail.bookService')}</h3>
               <p className="font-hanken text-body-sm mb-stack-md text-primary-fixed-dim">
-                {worker.is_available ? 'Currently accepting bookings' : 'Currently unavailable'}
+                {worker.is_available ? t('workerDetail.acceptingBookings') : t('workerDetail.unavailable')}
               </p>
               <div className="flex justify-between items-center py-2 border-b border-on-primary-container/20">
-                <span className="font-hanken text-body-sm text-primary-fixed-dim">Hourly Rate</span>
+                <span className="font-hanken text-body-sm text-primary-fixed-dim">{t('workerDetail.hourlyRate')}</span>
                 <span className="font-manrope text-headline-sm text-on-primary">₹{worker.hourly_rate || 0}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-on-primary-container/20">
-                <span className="font-hanken text-body-sm text-primary-fixed-dim">Experience</span>
-                <span className="font-manrope text-headline-sm text-on-primary">{worker.experience_years || 0} yrs</span>
+                <span className="font-hanken text-body-sm text-primary-fixed-dim">{t('workerDetail.experience')}</span>
+                <span className="font-manrope text-headline-sm text-on-primary">{worker.experience_years || 0} {t('workerDetail.yrs')}</span>
               </div>
               <div className="flex justify-between items-center py-2">
-                <span className="font-hanken text-body-sm text-primary-fixed-dim">Completed Jobs</span>
+                <span className="font-hanken text-body-sm text-primary-fixed-dim">{t('workerDetail.completedJobs')}</span>
                 <span className="font-manrope text-headline-sm text-on-primary">{worker.rating_count || 0}+</span>
               </div>
             </div>
@@ -154,7 +156,7 @@ export default function WorkerDetail() {
               to={`/customer/book/${worker.id}`}
               className="mt-stack-md w-full bg-secondary text-on-secondary font-manrope text-headline-sm py-3 rounded-lg hover:bg-secondary-container transition-colors shadow-md flex items-center justify-center gap-2"
             >
-              Book Now
+              {t('workerDetail.bookNow')}
               <span className="material-symbols-outlined">arrow_forward</span>
             </Link>
           </div>
@@ -167,7 +169,7 @@ export default function WorkerDetail() {
             {/* About */}
             {worker.bio && (
               <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1">
-                <h2 className="font-manrope text-headline-lg-mobile text-primary mb-stack-md">About</h2>
+                <h2 className="font-manrope text-headline-lg-mobile text-primary mb-stack-md">{t('workerDetail.about')}</h2>
                 <p className="font-hanken text-body-lg text-on-surface-variant leading-relaxed">{worker.bio}</p>
               </div>
             )}
@@ -175,7 +177,7 @@ export default function WorkerDetail() {
             {/* Services */}
             {worker.services?.length > 0 && (
               <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1">
-                <h2 className="font-manrope text-headline-lg-mobile text-primary mb-stack-md">Services Offered</h2>
+                <h2 className="font-manrope text-headline-lg-mobile text-primary mb-stack-md">{t('workerDetail.servicesOffered')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
                   {worker.services.map((svc, i) => (
                     <div key={i} className="p-stack-md border border-outline-variant rounded-lg hover:border-secondary transition-colors group">
@@ -199,7 +201,7 @@ export default function WorkerDetail() {
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1">
               <h2 className="font-manrope text-headline-md text-primary mb-stack-md flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary">calendar_month</span>
-                Availability
+                {t('workerDetail.availability')}
               </h2>
               <div className="flex flex-col gap-1">
                 {DAYS.map((day, idx) => {
@@ -209,7 +211,7 @@ export default function WorkerDetail() {
                     <div key={idx} className="flex justify-between items-center py-2 border-b border-outline-variant/50 last:border-0">
                       <span className="font-hanken text-body-md font-medium text-primary">{day}</span>
                       <span className="font-hanken text-body-md text-on-surface-variant">
-                        {slots ? `${slots[0].start_time} - ${slots[0].end_time}` : 'Closed'}
+                        {slots ? `${slots[0].start_time} - ${slots[0].end_time}` : t('workerDetail.closed')}
                       </span>
                     </div>
                   );
@@ -220,9 +222,9 @@ export default function WorkerDetail() {
             {/* Reviews */}
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-level-1 flex-grow">
               <div className="flex justify-between items-center mb-stack-md">
-                <h2 className="font-manrope text-headline-md text-primary">Reviews</h2>
+                <h2 className="font-manrope text-headline-md text-primary">{t('workerDetail.reviews')}</h2>
                 {reviews.length > 3 && (
-                  <span className="font-hanken text-label-md text-secondary">View All</span>
+                  <span className="font-hanken text-label-md text-secondary">{t('workerDetail.viewAll')}</span>
                 )}
               </div>
               {reviews.length > 0 ? (
@@ -250,7 +252,7 @@ export default function WorkerDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="font-hanken text-body-sm text-on-surface-variant text-center py-4">No reviews yet</p>
+                <p className="font-hanken text-body-sm text-on-surface-variant text-center py-4">{t('workerDetail.noReviews')}</p>
               )}
             </div>
           </div>
@@ -264,7 +266,7 @@ export default function WorkerDetail() {
         {/* Back */}
         <Link to="/customer/workers" className="flex items-center gap-1 font-hanken text-body-sm text-on-surface-variant hover:text-secondary w-fit mb-stack-md">
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-          Back to search
+          {t('workerDetail.backToSearch')}
         </Link>
 
         {/* Profile Header */}
@@ -281,12 +283,12 @@ export default function WorkerDetail() {
           </div>
           <div className="flex flex-col justify-center pt-2">
             <h1 className="font-manrope text-display-lg text-primary tracking-tight">{worker.full_name}</h1>
-            <h2 className="font-manrope text-headline-sm text-on-surface-variant mt-1">{worker.city || 'Service Professional'}</h2>
+            <h2 className="font-manrope text-headline-sm text-on-surface-variant mt-1">{worker.city || t('workerDetail.serviceProfessional')}</h2>
             <div className="flex flex-wrap items-center gap-stack-md mt-stack-md font-hanken text-body-sm text-on-surface-variant">
               <div className="flex items-center gap-2 bg-surface-container-lowest border border-outline-slate px-3 py-1.5 rounded-full">
                 <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                 <span className="font-hanken text-label-sm text-primary">{worker.rating_avg || 0}</span>
-                <span>({worker.rating_count || 0} Reviews)</span>
+                <span>{t('workerDetail.reviewsCount', { count: worker.rating_count || 0 })}</span>
               </div>
               {worker.city && (
                 <div className="flex items-center gap-2">
@@ -299,7 +301,7 @@ export default function WorkerDetail() {
                   <span className="text-outline-variant">|</span>
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[18px]">work</span>
-                    <span>{worker.experience_years}+ Years Experience</span>
+                    <span>{t('workerDetail.yrsExperiencePlus', { count: worker.experience_years })}</span>
                   </div>
                 </>
               )}
@@ -316,7 +318,7 @@ export default function WorkerDetail() {
               <section className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg hover:shadow-level-2 transition-shadow">
                 <h3 className="font-manrope text-headline-md text-primary mb-stack-md flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant">person</span>
-                  About
+                  {t('workerDetail.about')}
                 </h3>
                 <p className="font-hanken text-body-md text-on-surface-variant leading-relaxed">{worker.bio}</p>
               </section>
@@ -327,7 +329,7 @@ export default function WorkerDetail() {
               <section className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg hover:shadow-level-2 transition-shadow">
                 <h3 className="font-manrope text-headline-md text-primary mb-stack-md flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant">cases</span>
-                  Services &amp; Pricing
+                  {t('workerDetail.servicesPricing')}
                 </h3>
                 <div className="flex flex-col">
                   {worker.services.map((svc, i) => (
@@ -340,7 +342,7 @@ export default function WorkerDetail() {
                       </div>
                       <div className="flex flex-col items-end w-32 shrink-0">
                         <span className="font-manrope text-headline-md text-primary">₹{worker.hourly_rate || 0}</span>
-                        <span className="font-hanken text-label-sm text-on-surface-variant">per hour</span>
+                        <span className="font-hanken text-label-sm text-on-surface-variant">{t('workerDetail.perHour')}</span>
                       </div>
                     </div>
                   ))}
@@ -352,7 +354,7 @@ export default function WorkerDetail() {
             <section className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg hover:shadow-level-2 transition-shadow">
               <h3 className="font-manrope text-headline-md text-primary mb-stack-md flex items-center gap-2">
                 <span className="material-symbols-outlined text-on-surface-variant">calendar_month</span>
-                General Availability
+                {t('workerDetail.generalAvailability')}
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-stack-md">
                 {DAYS.map((day, idx) => {
@@ -362,7 +364,7 @@ export default function WorkerDetail() {
                     <div key={idx} className={`bg-surface border border-outline-slate rounded-lg p-3 flex flex-col ${slots ? '' : 'opacity-50'}`}>
                       <span className="font-hanken text-label-md text-primary">{day}</span>
                       <span className="font-hanken text-body-sm text-on-surface-variant mt-1">
-                        {slots ? `${slots[0].start_time} - ${slots[0].end_time}` : 'Unavailable'}
+                        {slots ? `${slots[0].start_time} - ${slots[0].end_time}` : t('workerDetail.unavailableDay')}
                       </span>
                     </div>
                   );
@@ -370,7 +372,7 @@ export default function WorkerDetail() {
               </div>
               <p className="font-hanken text-body-sm text-on-surface-variant mt-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-secondary text-[16px]">info</span>
-                Specific slots are subject to the booking calendar.
+                {t('workerDetail.slotsNote')}
               </p>
             </section>
 
@@ -379,10 +381,10 @@ export default function WorkerDetail() {
               <div className="flex justify-between items-center mb-stack-md">
                 <h3 className="font-manrope text-headline-md text-primary flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant">forum</span>
-                  Recent Feedback
+                  {t('workerDetail.recentFeedback')}
                 </h3>
                 {reviews.length > 0 && (
-                  <span className="font-hanken text-label-md text-secondary">{reviews.length} total</span>
+                  <span className="font-hanken text-label-md text-secondary">{t('workerDetail.totalReviews', { count: reviews.length })}</span>
                 )}
               </div>
               {reviews.length > 0 ? (
@@ -394,7 +396,7 @@ export default function WorkerDetail() {
                           <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-hanken text-label-md">
                             {(review.customer_name || '?').slice(0, 2).toUpperCase()}
                           </div>
-                          <div className="font-hanken text-label-md text-primary">{review.customer_name || 'Customer'}</div>
+                          <div className="font-hanken text-label-md text-primary">{review.customer_name || t('auth.customer')}</div>
                         </div>
                         <div className="flex text-secondary">
                           {[1, 2, 3, 4, 5].map((s) => (
@@ -415,7 +417,7 @@ export default function WorkerDetail() {
                   ))}
                 </div>
               ) : (
-                <p className="font-hanken text-body-sm text-on-surface-variant text-center py-4">No reviews yet</p>
+                <p className="font-hanken text-body-sm text-on-surface-variant text-center py-4">{t('workerDetail.noReviews')}</p>
               )}
             </section>
           </div>
@@ -430,16 +432,16 @@ export default function WorkerDetail() {
               <ul className="space-y-3 mb-stack-lg">
                 <li className="flex items-start gap-3 font-hanken text-body-sm text-on-surface-variant">
                   <span className="material-symbols-outlined text-secondary text-[20px]">schedule</span>
-                  {worker.is_available ? 'Currently accepting bookings' : 'Currently unavailable'}
+                  {worker.is_available ? t('workerDetail.acceptingBookings') : t('workerDetail.unavailable')}
                 </li>
                 <li className="flex items-start gap-3 font-hanken text-body-sm text-on-surface-variant">
                   <span className="material-symbols-outlined text-secondary text-[20px]">check_circle</span>
-                  Secure booking &amp; payment via Connect360
+                  {t('workerDetail.secureBooking')}
                 </li>
                 {worker.is_verified && (
                   <li className="flex items-start gap-3 font-hanken text-body-sm text-on-surface-variant">
                     <span className="material-symbols-outlined text-secondary text-[20px]">verified</span>
-                    Connect360 Verified professional
+                    {t('workerDetail.verifiedPro')}
                   </li>
                 )}
               </ul>
@@ -447,7 +449,7 @@ export default function WorkerDetail() {
                 to={`/customer/book/${worker.id}`}
                 className="w-full bg-primary-container text-on-primary h-12 rounded-lg font-hanken text-label-md flex justify-center items-center gap-2 hover:bg-primary transition-colors"
               >
-                Book Consultation
+                {t('workerDetail.bookConsultation')}
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </Link>
             </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { workersService } from '../../services/workersService';
@@ -6,9 +7,11 @@ import { bookingsService } from '../../services/bookingsService';
 import { priorityService } from '../../services/priorityService';
 import StatusBadge from '../../components/StatusBadge';
 import DashboardLayout from '../../components/DashboardLayout';
+import OverdueReminders from '../../components/OverdueReminders';
 
 export default function WorkerDashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [priorityCount, setPriorityCount] = useState(0);
@@ -39,7 +42,7 @@ export default function WorkerDashboard() {
     try {
       await bookingsService.respondToBooking(bookingId, action);
       loadData();
-    } catch (err) { alert(err.response?.data?.error || `Failed to ${action}`); }
+    } catch (err) { alert(err.response?.data?.error || t('workerBookings.failedAction', { action })); }
   }
 
   const pending = bookings.filter((b) => b.status === 'pending');
@@ -65,9 +68,9 @@ export default function WorkerDashboard() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('dashboard.goodMorning');
+    if (hour < 17) return t('dashboard.goodAfternoon');
+    return t('dashboard.goodEvening');
   };
 
   const firstName = user?.fullName?.split(' ')[0] || 'Worker';
@@ -114,20 +117,23 @@ export default function WorkerDashboard() {
         {/* Header */}
         <section className="flex flex-col gap-stack-xs">
           <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">
-            Welcome back, {firstName}
+            {t('dashboard.welcomeBack')}, {firstName}
           </h1>
           <p className="font-hanken text-body-md text-on-surface-variant">
-            Here is a summary of your professional dashboard for today.
+            {t('dashboard.summaryProToday')}
           </p>
         </section>
+
+        {/* Overdue booking reminders (Enhancement) */}
+        <OverdueReminders onResolved={loadData} />
 
         {/* Profile Completion */}
         {profileCompletion < 100 && (
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-1 p-stack-md md:p-gutter">
             <div className="flex justify-between items-end mb-2">
               <div>
-                <h2 className="font-manrope text-headline-sm text-primary">Profile Completion</h2>
-                <p className="font-hanken text-body-sm text-on-surface-variant">Complete your profile to unlock more bookings.</p>
+                <h2 className="font-manrope text-headline-sm text-primary">{t('dashboard.profileCompletion')}</h2>
+                <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.completeProfile')}</p>
               </div>
               <span className="font-manrope text-headline-md text-secondary">{profileCompletion}%</span>
             </div>
@@ -143,14 +149,14 @@ export default function WorkerDashboard() {
             <span className="material-symbols-outlined text-secondary-container bg-surface-container-low p-2 rounded-lg w-fit">upcoming</span>
             <div>
               <p className="font-manrope text-headline-md text-primary">{active.length}</p>
-              <p className="font-hanken text-body-sm text-on-surface-variant">Active Bookings</p>
+              <p className="font-hanken text-body-sm text-on-surface-variant">{t('worker.activeBookings')}</p>
             </div>
           </div>
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-1 p-stack-md flex flex-col gap-2">
             <span className="material-symbols-outlined text-secondary-container bg-surface-container-low p-2 rounded-lg w-fit">task_alt</span>
             <div>
               <p className="font-manrope text-headline-md text-primary">{completed.length}</p>
-              <p className="font-hanken text-body-sm text-on-surface-variant">Jobs Completed</p>
+              <p className="font-hanken text-body-sm text-on-surface-variant">{t('worker.jobsCompleted')}</p>
             </div>
           </div>
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-1 p-stack-md flex flex-col gap-2">
@@ -159,10 +165,10 @@ export default function WorkerDashboard() {
               <p className="font-manrope text-headline-md text-primary flex items-center gap-1">
                 {profile?.rating_avg || '—'}
                 <span className="font-hanken text-body-sm text-on-surface-variant font-normal">
-                  ({profile?.rating_count || 0} reviews)
+                  {t('dashboard.reviewsCount', { count: profile?.rating_count || 0 })}
                 </span>
               </p>
-              <p className="font-hanken text-body-sm text-on-surface-variant">Rating</p>
+              <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.ratingLabel')}</p>
             </div>
           </div>
           <div className={`bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-1 p-stack-md flex flex-col gap-2 ${pending.length > 0 ? 'border-l-4 border-l-warning' : ''}`}>
@@ -171,7 +177,7 @@ export default function WorkerDashboard() {
             </span>
             <div>
               <p className="font-manrope text-headline-md text-primary">{pending.length}</p>
-              <p className="font-hanken text-body-sm text-on-surface-variant">Pending Requests</p>
+              <p className="font-hanken text-body-sm text-on-surface-variant">{t('worker.pendingRequests')}</p>
             </div>
           </div>
         </section>
@@ -184,13 +190,13 @@ export default function WorkerDashboard() {
           </span>
           <span className="flex-1">
             <span className="flex items-center gap-2">
-              <span className="font-manrope text-label-md text-primary">Priority Requests</span>
+              <span className="font-manrope text-label-md text-primary">{t('dashboard.priorityRequests')}</span>
               {priorityCount > 0 && (
                 <span className="bg-secondary text-on-secondary font-hanken text-label-sm px-2 py-0.5 rounded-full">{priorityCount}</span>
               )}
             </span>
             <span className="block font-hanken text-body-sm text-on-surface-variant">
-              {priorityCount > 0 ? 'Auto-matched jobs awaiting your response' : 'No priority requests right now'}
+              {priorityCount > 0 ? t('dashboard.autoMatchedJobs') : t('dashboard.noPriorityNow')}
             </span>
           </span>
           <span className="material-symbols-outlined text-secondary">arrow_forward</span>
@@ -200,9 +206,9 @@ export default function WorkerDashboard() {
           {/* Booking Requests */}
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-1 p-stack-md md:p-gutter flex flex-col gap-stack-md">
             <div className="flex justify-between items-center">
-              <h2 className="font-manrope text-headline-sm text-primary">Booking Requests</h2>
+              <h2 className="font-manrope text-headline-sm text-primary">{t('dashboard.bookingRequests')}</h2>
               {bookings.length > 0 && (
-                <Link to="/worker/bookings" className="font-hanken text-label-md text-secondary hover:underline">View All</Link>
+                <Link to="/worker/bookings" className="font-hanken text-label-md text-secondary hover:underline">{t('dashboard.viewAll')}</Link>
               )}
             </div>
 
@@ -223,7 +229,7 @@ export default function WorkerDashboard() {
                           </p>
                         </div>
                       </div>
-                      <span className="font-hanken text-label-sm bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">New</span>
+                      <span className="font-hanken text-label-sm bg-surface-container text-on-surface-variant px-3 py-1 rounded-full">{t('dashboard.new')}</span>
                     </div>
                     {booking.notes && (
                       <p className="font-hanken text-body-sm text-on-surface-variant ml-[64px]">"{booking.notes}"</p>
@@ -233,13 +239,13 @@ export default function WorkerDashboard() {
                         onClick={() => handleRespond(booking.booking_id || booking.id, 'accept')}
                         className="bg-primary-container text-on-primary font-hanken text-label-md px-4 py-2 rounded-lg hover:opacity-90 transition-opacity"
                       >
-                        Accept
+                        {t('dashboard.accept')}
                       </button>
                       <button
                         onClick={() => handleRespond(booking.booking_id || booking.id, 'reject')}
                         className="bg-surface-container-lowest text-primary border border-outline-variant font-hanken text-label-md px-4 py-2 rounded-lg hover:bg-surface-container transition-colors"
                       >
-                        Decline
+                        {t('dashboard.decline')}
                       </button>
                     </div>
                   </div>
@@ -248,7 +254,7 @@ export default function WorkerDashboard() {
             ) : (
               <div className="text-center py-8">
                 <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">inbox</span>
-                <p className="font-hanken text-body-sm text-on-surface-variant">No pending booking requests</p>
+                <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.noPending')}</p>
               </div>
             )}
           </section>
@@ -256,7 +262,7 @@ export default function WorkerDashboard() {
           {/* Today's Schedule / Active Bookings */}
           <section className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-level-1 p-stack-md md:p-gutter flex flex-col gap-stack-md">
             <div className="flex justify-between items-center">
-              <h2 className="font-manrope text-headline-sm text-primary">Active Bookings</h2>
+              <h2 className="font-manrope text-headline-sm text-primary">{t('dashboard.activeBookings')}</h2>
               <Link to="/worker/bookings" className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">more_horiz</Link>
             </div>
 
@@ -292,8 +298,8 @@ export default function WorkerDashboard() {
             ) : (
               <div className="text-center py-8">
                 <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">event_busy</span>
-                <p className="font-hanken text-body-sm text-on-surface-variant">No active bookings today</p>
-                <p className="font-hanken text-body-sm text-on-surface-variant mt-1">New bookings will appear here once customers book your services.</p>
+                <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.noActiveToday')}</p>
+                <p className="font-hanken text-body-sm text-on-surface-variant mt-1">{t('dashboard.newBookingsAppear')}</p>
               </div>
             )}
           </section>
@@ -304,13 +310,13 @@ export default function WorkerDashboard() {
           <div className="bg-warning-container/30 border border-warning/30 rounded-xl p-5 flex items-start gap-4">
             <span className="material-symbols-outlined text-warning text-[24px] mt-0.5">gpp_maybe</span>
             <div className="flex-1">
-              <h3 className="font-manrope text-headline-sm text-on-surface">Complete Your Verification</h3>
+              <h3 className="font-manrope text-headline-sm text-on-surface">{t('dashboard.completeVerification')}</h3>
               <p className="font-hanken text-body-sm text-on-surface-variant mt-1">
-                Upload your documents to get verified and start receiving bookings from customers.
+                {t('dashboard.uploadDocsVerified')}
               </p>
               <Link to="/worker/verification" className="inline-flex items-center gap-1.5 mt-3 bg-primary-container text-on-primary font-hanken text-label-md px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
                 <span className="material-symbols-outlined text-[18px]">upload</span>
-                Upload Documents
+                {t('dashboard.uploadDocuments')}
               </Link>
             </div>
           </div>
@@ -325,19 +331,22 @@ export default function WorkerDashboard() {
         <div className="flex justify-between items-end">
           <div>
             <h2 className="font-manrope text-headline-lg text-on-background">{getGreeting()}, {firstName}</h2>
-            <p className="font-hanken text-body-md text-on-surface-variant mt-1">Here's your schedule and activity for today.</p>
+            <p className="font-hanken text-body-md text-on-surface-variant mt-1">{t('dashboard.scheduleActivityToday')}</p>
           </div>
           <span className="font-hanken text-label-sm bg-surface-container px-3 py-1.5 rounded-full text-on-surface-variant border border-outline-slate flex items-center">
             <span className="w-2 h-2 rounded-full bg-secondary mr-2" />
-            {profile?.is_verified ? 'Online & Accepting Jobs' : 'Verification Pending'}
+            {profile?.is_verified ? t('dashboard.onlineAccepting') : t('dashboard.verifyPending')}
           </span>
         </div>
+
+        {/* Overdue booking reminders (Enhancement) */}
+        <OverdueReminders onResolved={loadData} />
 
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-gutter">
           <div className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-md flex items-center justify-between hover:shadow-level-1 transition-shadow group">
             <div>
-              <p className="font-hanken text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Active Bookings</p>
+              <p className="font-hanken text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">{t('worker.activeBookings')}</p>
               <p className="font-manrope text-display-lg text-on-background group-hover:text-secondary transition-colors">{active.length}</p>
             </div>
             <div className="w-12 h-12 bg-secondary-fixed/40 rounded-full flex items-center justify-center text-secondary">
@@ -346,7 +355,7 @@ export default function WorkerDashboard() {
           </div>
           <div className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-md flex items-center justify-between hover:shadow-level-1 transition-shadow group">
             <div>
-              <p className="font-hanken text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Jobs Completed</p>
+              <p className="font-hanken text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">{t('worker.jobsCompleted')}</p>
               <p className="font-manrope text-display-lg text-on-background group-hover:text-secondary transition-colors">{completed.length}</p>
             </div>
             <div className="w-12 h-12 bg-secondary-fixed/40 rounded-full flex items-center justify-center text-secondary">
@@ -355,7 +364,7 @@ export default function WorkerDashboard() {
           </div>
           <div className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-md flex items-center justify-between hover:shadow-level-1 transition-shadow group">
             <div>
-              <p className="font-hanken text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">Average Rating</p>
+              <p className="font-hanken text-label-sm text-on-surface-variant mb-1 uppercase tracking-wider">{t('dashboard.averageRating')}</p>
               <div className="flex items-end gap-2">
                 <p className="font-manrope text-display-lg text-on-background group-hover:text-secondary transition-colors">{profile?.rating_avg || '—'}</p>
                 <span className="font-hanken text-label-sm text-on-surface-variant mb-2">({profile?.rating_count || 0})</span>
@@ -372,8 +381,8 @@ export default function WorkerDashboard() {
           <div className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-md">
             <div className="flex justify-between items-end mb-2">
               <div>
-                <h3 className="font-manrope text-headline-sm text-on-background">Profile Completion</h3>
-                <p className="font-hanken text-body-sm text-on-surface-variant">Complete your profile to unlock more bookings.</p>
+                <h3 className="font-manrope text-headline-sm text-on-background">{t('dashboard.profileCompletion')}</h3>
+                <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.completeProfile')}</p>
               </div>
               <span className="font-manrope text-headline-md text-secondary">{profileCompletion}%</span>
             </div>
@@ -395,13 +404,13 @@ export default function WorkerDashboard() {
               </span>
               <span className="flex-1">
                 <span className="flex items-center gap-2">
-                  <span className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">Priority Requests</span>
+                  <span className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">{t('dashboard.priorityRequests')}</span>
                   {priorityCount > 0 && (
                     <span className="bg-secondary text-on-secondary font-hanken text-label-sm px-2 py-0.5 rounded-full">{priorityCount}</span>
                   )}
                 </span>
                 <span className="block font-hanken text-body-md text-on-surface-variant mt-0.5">
-                  {priorityCount > 0 ? 'Auto-matched jobs awaiting your response' : 'No priority requests right now'}
+                  {priorityCount > 0 ? t('dashboard.autoMatchedJobs') : t('dashboard.noPriorityNow')}
                 </span>
               </span>
               <span className="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -410,12 +419,12 @@ export default function WorkerDashboard() {
             <div className="flex items-center justify-between border-b border-outline-slate pb-2">
               <h3 className="font-manrope text-headline-sm text-on-background flex items-center">
                 <span className="material-symbols-outlined mr-2 text-on-surface-variant">inbox</span>
-                New Booking Requests
+                {t('dashboard.newRequests')}
                 {pending.length > 0 && (
                   <span className="ml-3 bg-secondary text-on-secondary font-hanken text-label-sm px-2 py-0.5 rounded-full">{pending.length}</span>
                 )}
               </h3>
-              <Link to="/worker/bookings" className="font-hanken text-label-sm text-secondary hover:underline">View All</Link>
+              <Link to="/worker/bookings" className="font-hanken text-label-sm text-secondary hover:underline">{t('dashboard.viewAll')}</Link>
             </div>
 
             {pending.length > 0 ? (
@@ -427,9 +436,9 @@ export default function WorkerDashboard() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <h4 className="font-hanken text-label-md text-on-background">{booking.service_name}</h4>
-                          <p className="font-hanken text-body-sm text-on-surface-variant">Requested by {booking.customer_name}</p>
+                          <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.requestedBy', { name: booking.customer_name })}</p>
                         </div>
-                        <span className="font-hanken text-label-sm bg-surface-container text-on-surface-variant px-2 py-1 rounded">New</span>
+                        <span className="font-hanken text-label-sm bg-surface-container text-on-surface-variant px-2 py-1 rounded">{t('dashboard.new')}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-4">
                         <div className="flex items-center text-on-surface-variant font-hanken text-body-sm">
@@ -452,13 +461,13 @@ export default function WorkerDashboard() {
                         onClick={() => handleRespond(booking.booking_id || booking.id, 'accept')}
                         className="bg-primary-container text-on-primary font-hanken text-label-md px-4 py-2 rounded-lg hover:bg-tertiary transition-colors w-full text-center"
                       >
-                        Accept
+                        {t('dashboard.accept')}
                       </button>
                       <button
                         onClick={() => handleRespond(booking.booking_id || booking.id, 'reject')}
                         className="bg-surface-container-lowest text-primary-container border border-outline-slate font-hanken text-label-md px-4 py-2 rounded-lg hover:bg-surface-container transition-colors w-full text-center"
                       >
-                        Decline
+                        {t('dashboard.decline')}
                       </button>
                     </div>
                   </div>
@@ -467,7 +476,7 @@ export default function WorkerDashboard() {
             ) : (
               <div className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg text-center">
                 <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">inbox</span>
-                <p className="font-hanken text-body-md text-on-surface-variant">No pending booking requests</p>
+                <p className="font-hanken text-body-md text-on-surface-variant">{t('dashboard.noPending')}</p>
               </div>
             )}
 
@@ -476,13 +485,13 @@ export default function WorkerDashboard() {
               <div className="bg-warning-container/30 border border-warning/30 rounded-xl p-stack-md flex items-start gap-4">
                 <span className="material-symbols-outlined text-warning text-[24px] mt-0.5">gpp_maybe</span>
                 <div className="flex-1">
-                  <h3 className="font-manrope text-headline-sm text-on-surface">Complete Your Verification</h3>
+                  <h3 className="font-manrope text-headline-sm text-on-surface">{t('dashboard.completeVerification')}</h3>
                   <p className="font-hanken text-body-sm text-on-surface-variant mt-1">
-                    Upload your documents to get verified and start receiving bookings.
+                    {t('dashboard.uploadDocsVerifiedShort')}
                   </p>
                   <Link to="/worker/verification" className="inline-flex items-center gap-1.5 mt-3 bg-primary-container text-on-primary font-hanken text-label-md px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
                     <span className="material-symbols-outlined text-[18px]">upload</span>
-                    Upload Documents
+                    {t('dashboard.uploadDocuments')}
                   </Link>
                 </div>
               </div>
@@ -495,7 +504,7 @@ export default function WorkerDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-manrope text-headline-sm text-on-background flex items-center">
                   <span className="material-symbols-outlined mr-2 text-on-surface-variant">calendar_today</span>
-                  Today's Schedule
+                  {t('dashboard.todaysSchedule')}
                 </h3>
                 <Link to="/worker/bookings" className="w-8 h-8 rounded flex items-center justify-center hover:bg-surface-container transition-colors text-on-surface-variant">
                   <span className="material-symbols-outlined">more_vert</span>
@@ -514,7 +523,7 @@ export default function WorkerDashboard() {
                       <div className="flex flex-col">
                         <span className={`font-hanken text-label-sm mb-1 ${idx === 0 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>
                           {booking.scheduled_date}{booking.scheduled_time && ` · ${booking.scheduled_time}`}
-                          {idx === 0 && ' (Up Next)'}
+                          {idx === 0 && ` ${t('dashboard.upNext')}`}
                         </span>
                         <div className={`p-4 rounded-lg border ${idx === 0 ? 'bg-secondary-fixed/20 border-secondary/30 shadow-sm' : 'bg-surface border-outline-slate'}`}>
                           <h4 className="font-hanken text-label-md text-on-background mb-1">{booking.service_name}</h4>
@@ -539,8 +548,8 @@ export default function WorkerDashboard() {
               ) : (
                 <div className="text-center py-8">
                   <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">event_busy</span>
-                  <p className="font-hanken text-body-sm text-on-surface-variant">No active bookings today</p>
-                  <p className="font-hanken text-body-sm text-on-surface-variant mt-1">New bookings appear here once customers book your services.</p>
+                  <p className="font-hanken text-body-sm text-on-surface-variant">{t('dashboard.noActiveToday')}</p>
+                  <p className="font-hanken text-body-sm text-on-surface-variant mt-1">{t('dashboard.newBookingsAppearShort')}</p>
                 </div>
               )}
             </div>

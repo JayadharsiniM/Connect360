@@ -163,6 +163,27 @@ export const mockBookings = [
     service_id: 'a1000000-0000-0000-0000-000000000002',
     created_at: '2026-08-20T09:00:00Z',
   },
+  {
+    // Overdue demo: accepted job whose scheduled date is in the past and was
+    // never marked completed. Assigned to the mock worker (Suresh Kumar).
+    id: 'd1000000-0000-0000-0000-000000000004',
+    service_name: 'Plumbing',
+    worker_name: 'Suresh Kumar',
+    customer_name: 'Arjun Nair',
+    status: 'accepted',
+    scheduled_date: '2026-09-05',
+    scheduled_time: '11:00',
+    duration_hours: 2,
+    address: '7 Besant Nagar, Chennai 600090',
+    notes: 'Bathroom pipe replacement',
+    total_amount: 1000,
+    overdue_flag: true,
+    overdue_since: '2026-09-05T12:00:00Z',
+    worker_id: 'w1000000-0000-0000-0000-000000000001',
+    customer_id: 'c1000000-0000-0000-0000-000000000003',
+    service_id: 'a1000000-0000-0000-0000-000000000001',
+    created_at: '2026-09-01T09:00:00Z',
+  },
 ];
 
 export const mockReviews = [
@@ -210,6 +231,18 @@ export const mockVerifications = [
     status: 'pending',
     created_at: '2026-08-20T08:00:00Z',
   },
+  {
+    id: 'v4',
+    worker_id: 'w1000000-0000-0000-0000-000000000004',
+    worker_name: 'Arun Prakash',
+    worker_email: 'worker4@demo.com',
+    document_type: 'address_proof',
+    document_name: 'Electricity Bill',
+    status: 'rejected',
+    created_at: '2026-08-10T09:30:00Z',
+    reviewed_at: '2026-08-11T12:00:00Z',
+    admin_notes: 'Document was blurry and unreadable. Please re-upload a clear copy.',
+  },
 ];
 
 export const mockDashboardStats = {
@@ -219,6 +252,7 @@ export const mockDashboardStats = {
     revenue: { total_revenue: 28500, completed_bookings: 12 },
     pending_verifications: 2,
     total_services: 8,
+    overdue_bookings: 1,
   },
   recent_bookings: mockBookings,
   top_workers: [

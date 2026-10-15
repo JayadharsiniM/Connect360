@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import { getRoadRoute, haversineDistance } from '../services/routingService';
 
@@ -11,7 +12,7 @@ L.Icon.Default.mergeOptions({
 });
 
 // Custom HTML Icons using L.divIcon
-function createCustomerIcon(label = 'Service Location') {
+function createCustomerIcon(label) {
   return L.divIcon({
     className: 'custom-customer-marker',
     html: `
@@ -31,8 +32,8 @@ function createCustomerIcon(label = 'Service Location') {
   });
 }
 
-function createWorkerIcon(name = 'Specialist', etaMinutes = null, heading = 0) {
-  const etaText = etaMinutes != null ? `⚡ ~${etaMinutes} min` : '⚡ En Route';
+function createWorkerIcon(name, etaMinutes = null, heading = 0, enRouteText = 'En Route') {
+  const etaText = etaMinutes != null ? `⚡ ~${etaMinutes} min` : `⚡ ${enRouteText}`;
   return L.divIcon({
     className: 'custom-worker-marker',
     html: `
@@ -61,13 +62,16 @@ function createWorkerIcon(name = 'Specialist', etaMinutes = null, heading = 0) {
 export default function LiveTrackingMap({
   workerLocation,
   customerLocation,
-  workerName = 'Specialist',
-  customerLabel = 'Customer Address',
+  workerName,
+  customerLabel,
   onRouteCalculated,
   className = '',
   style = {},
   isWorkerPerspective = false,
 }) {
+  const { t } = useTranslation();
+  const resolvedWorkerName = workerName || t('components.mapSpecialist');
+  const resolvedCustomerLabel = customerLabel || t('components.mapCustomerAddress');
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const workerMarkerRef = useRef(null);
@@ -94,10 +98,11 @@ export default function LiveTrackingMap({
       attributionControl: false,
     });
 
-    // High quality street map tiles (CartoDB Positron / OSM)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    // OpenStreetMap standard tiles — keyless, no API key required.
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      subdomains: 'abcd',
+      subdomains: 'abc',
+      attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
     // Zoom control in top-right
@@ -118,7 +123,7 @@ export default function LiveTrackingMap({
     if (!map || !customerLocation || !customerLocation.lat || !customerLocation.lng) return;
 
     const { lat, lng } = customerLocation;
-    const label = isWorkerPerspective ? 'Customer Destination' : customerLabel;
+    const label = isWorkerPerspective ? t('components.mapCustomerDestination') : resolvedCustomerLabel;
 
     if (customerMarkerRef.current) {
       customerMarkerRef.current.setLatLng([lat, lng]);
@@ -135,7 +140,7 @@ export default function LiveTrackingMap({
     if (!workerLocation || !workerLocation.latitude || !workerLocation.longitude) {
       map.setView([lat, lng], Math.max(map.getZoom(), 14), { animate: true });
     }
-  }, [customerLocation, customerLabel, isWorkerPerspective, workerLocation, mapReady]);
+  }, [customerLocation, resolvedCustomerLabel, isWorkerPerspective, workerLocation, mapReady, t]);
 
   // Update Worker Marker & Recalculate Turn-by-Turn Road Route
   const updateRoute = useCallback(async (workerLat, workerLng, custLat, custLng) => {
@@ -205,15 +210,16 @@ export default function LiveTrackingMap({
     const wLat = parseFloat(workerLocation.latitude);
     const wLng = parseFloat(workerLocation.longitude);
     const heading = parseFloat(workerLocation.heading || 0);
-    const name = isWorkerPerspective ? 'You (Technician)' : workerName;
+    const name = isWorkerPerspective ? t('components.mapYouTechnician') : resolvedWorkerName;
     const eta = routeInfo?.durationMinutes;
+    const enRouteText = t('components.mapEnRoute');
 
     if (workerMarkerRef.current) {
       workerMarkerRef.current.setLatLng([wLat, wLng]);
-      workerMarkerRef.current.setIcon(createWorkerIcon(name, eta, heading));
+      workerMarkerRef.current.setIcon(createWorkerIcon(name, eta, heading, enRouteText));
     } else {
       workerMarkerRef.current = L.marker([wLat, wLng], {
-        icon: createWorkerIcon(name, eta, heading),
+        icon: createWorkerIcon(name, eta, heading, enRouteText),
         zIndexOffset: 1000,
       }).addTo(map);
     }
@@ -227,7 +233,7 @@ export default function LiveTrackingMap({
         updateRoute(wLat, wLng, customerLocation.lat, customerLocation.lng);
       }
     }
-  }, [workerLocation, customerLocation, workerName, isWorkerPerspective, routeInfo?.durationMinutes, updateRoute, mapReady]);
+  }, [workerLocation, customerLocation, resolvedWorkerName, isWorkerPerspective, routeInfo?.durationMinutes, updateRoute, mapReady, t]);
 
   // Recenter helper
   const handleRecenter = () => {
@@ -258,14 +264,14 @@ export default function LiveTrackingMap({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-extrabold text-slate-900 font-manrope">
-                ~{routeInfo.durationMinutes} min drive
+                {t('components.mapMinDrive', { min: routeInfo.durationMinutes })}
               </span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
                 {routeInfo.distanceKm} km
               </span>
             </div>
             <p className="text-[10px] text-slate-500 font-medium">
-              Real Road Routing • {routeInfo.source === 'google-maps' ? 'Google Maps Routes' : 'Turn-by-turn road network'}
+              {t('components.mapRealRoadRouting')} • {routeInfo.source === 'google-maps' ? t('components.mapGoogleMapsRoutes') : t('components.mapTurnByTurnNetwork')}
             </p>
           </div>
         </div>
@@ -275,7 +281,7 @@ export default function LiveTrackingMap({
       <button
         onClick={handleRecenter}
         type="button"
-        title="Recenter Map"
+        title={t('components.mapRecenter')}
         className="absolute bottom-4 right-4 z-[1000] bg-white hover:bg-slate-50 text-slate-700 p-2.5 rounded-xl border border-slate-200 shadow-md transition flex items-center justify-center cursor-pointer"
       >
         <span className="material-symbols-outlined text-[18px] text-blue-600">my_location</span>
@@ -283,7 +289,7 @@ export default function LiveTrackingMap({
 
       {/* Map Attribution Watermark */}
       <div className="absolute bottom-1 left-2 z-[1000] pointer-events-none text-[9px] text-slate-400 bg-white/60 px-1.5 rounded">
-        © OpenStreetMap • Turn-by-turn Road Routing
+        © OpenStreetMap • {t('components.mapTurnByTurnRouting')}
       </div>
     </div>
   );

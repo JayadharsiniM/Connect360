@@ -28,4 +28,14 @@ export const bookingsService = isMock ? mockApi.bookings : {
   // Live GPS Tracking & Road Routing
   updateLocation: (bookingId, locationData) => api.put(`/bookings/${bookingId}/location`, locationData),
   getLocation: (bookingId) => api.get(`/bookings/${bookingId}/location`),
+
+  // Overdue monitoring (Enhancement): bookings whose scheduled time passed but
+  // which were never marked completed.
+  listWorkerOverdue: () => api.get('/worker/overdue-bookings'),
+  listAdminOverdue: () => api.get('/admin/overdue-bookings'),
+
+  // Arrival OTP (Ola/Uber-style). Customer views/regenerates; worker verifies.
+  getArrivalOtp: (bookingId) => api.get(`/bookings/${bookingId}/arrival-otp`),
+  regenerateArrivalOtp: (bookingId) => api.post(`/bookings/${bookingId}/arrival-otp/regenerate`),
+  verifyArrivalOtp: (bookingId, otp) => api.post(`/bookings/${bookingId}/verify-arrival-otp`, { otp }),
 };
