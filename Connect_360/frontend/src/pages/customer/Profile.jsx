@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { customerService } from '../../services/customerService';
 import DashboardLayout from '../../components/DashboardLayout';
 
 export default function CustomerProfile() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -11,6 +13,7 @@ export default function CustomerProfile() {
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({ full_name: '', phone: '', address: '', city: '' });
   const [message, setMessage] = useState('');
+  const [messageOk, setMessageOk] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -35,11 +38,13 @@ export default function CustomerProfile() {
     setMessage('');
     try {
       await customerService.updateProfile(formData);
-      setMessage('Profile updated successfully');
+      setMessage(t('profile.updatedSuccess'));
+      setMessageOk(true);
       setEditing(false);
       loadProfile();
     } catch (err) {
-      setMessage('Failed to update profile');
+      setMessage(t('profile.updateFailed'));
+      setMessageOk(false);
     } finally {
       setSaving(false);
     }
@@ -60,8 +65,8 @@ export default function CustomerProfile() {
   }
 
   const messageBanner = message && (
-    <div className={`rounded-lg p-4 flex items-center gap-3 ${message.includes('success') ? 'bg-success-container' : 'bg-error-container'}`}>
-      <span className="material-symbols-outlined text-[20px]">{message.includes('success') ? 'check_circle' : 'error'}</span>
+    <div className={`rounded-lg p-4 flex items-center gap-3 ${messageOk ? 'bg-success-container' : 'bg-error-container'}`}>
+      <span className="material-symbols-outlined text-[20px]">{messageOk ? 'check_circle' : 'error'}</span>
       <p className="font-hanken text-body-sm">{message}</p>
     </div>
   );
@@ -72,7 +77,7 @@ export default function CustomerProfile() {
       {/* MOBILE / TABLET VIEW (unchanged, below lg)                     */}
       {/* ============================================================= */}
       <div className="lg:hidden pt-6 md:pt-24 px-margin-mobile md:px-margin-desktop mx-auto flex flex-col gap-stack-lg pb-24 max-w-2xl">
-        <h1 className="font-manrope text-headline-lg-mobile text-primary">My Profile</h1>
+        <h1 className="font-manrope text-headline-lg-mobile text-primary">{t('profile.myProfile')}</h1>
 
         {messageBanner}
 
@@ -89,7 +94,7 @@ export default function CustomerProfile() {
             {!editing && (
               <button onClick={() => setEditing(true)} className="btn-secondary !py-2 !px-4">
                 <span className="material-symbols-outlined text-[16px] mr-1">edit</span>
-                Edit
+                {t('profile.edit')}
               </button>
             )}
           </div>
@@ -97,32 +102,32 @@ export default function CustomerProfile() {
           {editing ? (
             <form onSubmit={handleSave} className="flex flex-col gap-stack-md mt-6">
               <div className="flex flex-col gap-stack-xs">
-                <label className="font-hanken text-label-md text-on-surface">Full Name</label>
+                <label className="font-hanken text-label-md text-on-surface">{t('profile.fullName')}</label>
                 <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="input-field" />
               </div>
               <div className="flex flex-col gap-stack-xs">
-                <label className="font-hanken text-label-md text-on-surface">Phone</label>
+                <label className="font-hanken text-label-md text-on-surface">{t('profile.phone')}</label>
                 <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input-field" placeholder="+91 XXXXXXXXXX" />
               </div>
               <div className="flex flex-col gap-stack-xs">
-                <label className="font-hanken text-label-md text-on-surface">Address</label>
+                <label className="font-hanken text-label-md text-on-surface">{t('profile.address')}</label>
                 <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-field" />
               </div>
               <div className="flex flex-col gap-stack-xs">
-                <label className="font-hanken text-label-md text-on-surface">City</label>
+                <label className="font-hanken text-label-md text-on-surface">{t('profile.city')}</label>
                 <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input-field" />
               </div>
               <div className="flex gap-3 mt-stack-sm">
-                <button type="submit" disabled={saving} className="btn-primary flex-1">{saving ? 'Saving...' : 'Save Changes'}</button>
-                <button type="button" onClick={() => setEditing(false)} className="btn-secondary flex-1">Cancel</button>
+                <button type="submit" disabled={saving} className="btn-primary flex-1">{saving ? t('profile.saving') : t('profile.saveChanges')}</button>
+                <button type="button" onClick={() => setEditing(false)} className="btn-secondary flex-1">{t('profile.cancel')}</button>
               </div>
             </form>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md mt-6">
-              <div><p className="font-hanken text-label-sm text-on-surface-variant">Phone</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.phone || 'Not set'}</p></div>
-              <div><p className="font-hanken text-label-sm text-on-surface-variant">City</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.city || 'Not set'}</p></div>
-              <div className="md:col-span-2"><p className="font-hanken text-label-sm text-on-surface-variant">Address</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.address || 'Not set'}</p></div>
-              <div><p className="font-hanken text-label-sm text-on-surface-variant">Total Bookings</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.total_bookings || 0}</p></div>
+              <div><p className="font-hanken text-label-sm text-on-surface-variant">{t('profile.phone')}</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.phone || t('profile.notSet')}</p></div>
+              <div><p className="font-hanken text-label-sm text-on-surface-variant">{t('profile.city')}</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.city || t('profile.notSet')}</p></div>
+              <div className="md:col-span-2"><p className="font-hanken text-label-sm text-on-surface-variant">{t('profile.address')}</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.address || t('profile.notSet')}</p></div>
+              <div><p className="font-hanken text-label-sm text-on-surface-variant">{t('profile.totalBookings')}</p><p className="font-hanken text-body-md text-on-surface mt-1">{profile?.total_bookings || 0}</p></div>
             </div>
           )}
         </div>
@@ -134,8 +139,8 @@ export default function CustomerProfile() {
       <div className="hidden lg:flex lg:flex-col gap-stack-lg">
         {/* Header */}
         <div>
-          <h2 className="font-manrope text-headline-lg text-on-surface mb-2">Profile Settings</h2>
-          <p className="font-hanken text-body-md text-on-surface-variant">Manage your personal information and preferences.</p>
+          <h2 className="font-manrope text-headline-lg text-on-surface mb-2">{t('profile.profileSettings')}</h2>
+          <p className="font-hanken text-body-md text-on-surface-variant">{t('profile.settingsSubtitle')}</p>
         </div>
 
         {messageBanner}
@@ -149,7 +154,7 @@ export default function CustomerProfile() {
                 <span className="material-symbols-outlined text-primary text-[44px]">person</span>
               </div>
               <div className="flex-1">
-                <h3 className="font-manrope text-headline-sm text-on-surface mb-1">{profile?.full_name || user?.fullName || 'Your Account'}</h3>
+                <h3 className="font-manrope text-headline-sm text-on-surface mb-1">{profile?.full_name || user?.fullName || t('profile.yourAccount')}</h3>
                 <p className="font-hanken text-body-sm text-on-surface-variant mb-1">{user?.email}</p>
                 <span className="font-hanken text-label-sm text-secondary capitalize">{user?.role}</span>
               </div>
@@ -157,33 +162,33 @@ export default function CustomerProfile() {
 
             {/* Personal info form */}
             <div className="bg-white rounded-lg border border-outline-slate p-stack-lg">
-              <h3 className="font-manrope text-headline-sm text-on-surface mb-6 border-b border-surface-container pb-4">Personal Information</h3>
+              <h3 className="font-manrope text-headline-sm text-on-surface mb-6 border-b border-surface-container pb-4">{t('profile.personalInformation')}</h3>
               <form onSubmit={handleSave} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="flex flex-col gap-2">
-                    <label className="font-hanken text-label-md text-on-surface">Full Name</label>
+                    <label className="font-hanken text-label-md text-on-surface">{t('profile.fullName')}</label>
                     <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} className="input-field" />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <label className="font-hanken text-label-md text-on-surface">Phone Number</label>
+                    <label className="font-hanken text-label-md text-on-surface">{t('profile.phoneNumber')}</label>
                     <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input-field" placeholder="+91 XXXXXXXXXX" />
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="font-hanken text-label-md text-on-surface">Email Address</label>
+                  <label className="font-hanken text-label-md text-on-surface">{t('profile.emailAddress')}</label>
                   <input type="email" value={user?.email || ''} disabled className="input-field opacity-70 cursor-not-allowed" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="font-hanken text-label-md text-on-surface">City</label>
+                  <label className="font-hanken text-label-md text-on-surface">{t('profile.city')}</label>
                   <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input-field" />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="font-hanken text-label-md text-on-surface">Physical Address</label>
+                  <label className="font-hanken text-label-md text-on-surface">{t('profile.physicalAddress')}</label>
                   <textarea rows={3} value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} className="input-field resize-none" />
                 </div>
                 <div className="pt-4 flex justify-end">
                   <button type="submit" disabled={saving} className="bg-primary-container text-on-primary font-hanken text-label-md px-6 py-3 rounded-lg min-w-[120px] hover:bg-primary transition-colors disabled:opacity-50">
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? t('profile.saving') : t('profile.saveChanges')}
                   </button>
                 </div>
               </form>
@@ -195,19 +200,19 @@ export default function CustomerProfile() {
             <div className="bg-white rounded-lg border border-outline-slate p-stack-md">
               <h3 className="font-manrope text-headline-sm text-on-surface mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-outline">account_circle</span>
-                Account
+                {t('profile.account')}
               </h3>
               <div className="flex flex-col gap-4">
                 <div className="flex justify-between items-center">
-                  <span className="font-hanken text-body-sm text-on-surface-variant">Role</span>
+                  <span className="font-hanken text-body-sm text-on-surface-variant">{t('profile.role')}</span>
                   <span className="font-hanken text-label-md text-on-surface capitalize">{user?.role}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-hanken text-body-sm text-on-surface-variant">Total Bookings</span>
+                  <span className="font-hanken text-body-sm text-on-surface-variant">{t('profile.totalBookings')}</span>
                   <span className="font-hanken text-label-md text-on-surface">{profile?.total_bookings || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-hanken text-body-sm text-on-surface-variant">Member Email</span>
+                  <span className="font-hanken text-body-sm text-on-surface-variant">{t('profile.memberEmail')}</span>
                   <span className="font-hanken text-body-sm text-on-surface truncate max-w-[140px]" title={user?.email}>{user?.email}</span>
                 </div>
               </div>

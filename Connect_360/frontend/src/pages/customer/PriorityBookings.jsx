@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { priorityService } from '../../services/priorityService';
 import { bookingsService } from '../../services/bookingsService';
 import { geocodeAddress } from '../../services/routingService';
 import CallButton from '../../components/CallButton';
+import ArrivalOtpCard from '../../components/ArrivalOtpCard';
 import DashboardLayout from '../../components/DashboardLayout';
 import LiveTrackingMap from '../../components/LiveTrackingMap';
 import { PRIORITY_STATUS } from '../../config/constants';
@@ -17,6 +19,7 @@ const ACTIVE_STATUSES = [
 ];
 
 export default function PriorityBookings() {
+  const { t } = useTranslation();
   const location = useLocation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -129,20 +132,20 @@ export default function PriorityBookings() {
       await priorityService.rematch(id);
       await load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Could not rematch');
+      alert(err.response?.data?.error || t('priorityTrack.couldNotRematch'));
     } finally {
       setActionId(null);
     }
   }
 
   async function handleCancel(id) {
-    if (!window.confirm('Are you sure you want to cancel this priority booking?')) return;
+    if (!window.confirm(t('priorityTrack.confirmCancel'))) return;
     setActionId(id);
     try {
       await priorityService.cancel(id);
       await load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Could not cancel');
+      alert(err.response?.data?.error || t('priorityTrack.couldNotCancel'));
     } finally {
       setActionId(null);
     }
@@ -163,10 +166,10 @@ export default function PriorityBookings() {
             </span>
             <div>
               <h1 className="font-manrope text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Priority Booking Telemetry & Tracking
+                {t('priorityTrack.title')}
               </h1>
               <p className="font-hanken text-xs sm:text-sm text-slate-500">
-                Live worker dispatch status, route tracking, and instant updates
+                {t('priorityTrack.subtitle')}
               </p>
             </div>
           </div>
@@ -175,7 +178,7 @@ export default function PriorityBookings() {
             className="self-start sm:self-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
-            New Priority Request
+            {t('priorityTrack.newRequest')}
           </Link>
         </div>
 
@@ -189,16 +192,15 @@ export default function PriorityBookings() {
             <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4 text-3xl">
               ⚡
             </div>
-            <h3 className="font-manrope text-xl font-bold text-slate-900 mb-2">No Priority Bookings Yet</h3>
+            <h3 className="font-manrope text-xl font-bold text-slate-900 mb-2">{t('priorityTrack.noBookingsTitle')}</h3>
             <p className="font-hanken text-sm text-slate-500 max-w-md mx-auto mb-6">
-              Need urgent service? With Priority Booking, our smart algorithm matches and dispatches the top verified
-              technician within minutes.
+              {t('priorityTrack.noBookingsDesc')}
             </p>
             <Link
               to="/customer/priority/new"
               className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold py-3 px-6 rounded-xl text-sm inline-flex items-center gap-2 shadow-lg shadow-blue-500/20"
             >
-              <span>Create Priority Request</span>
+              <span>{t('priorityTrack.createRequest')}</span>
               <span>→</span>
             </Link>
           </div>
@@ -227,20 +229,20 @@ export default function PriorityBookings() {
                       <span className="w-2 h-2 rounded-full bg-current animate-pulse"></span>
                       <span className="uppercase tracking-wider">
                         {activeBooking.status === 'worker_pending'
-                          ? 'Awaiting Worker Acceptance'
+                          ? t('priorityTrack.awaitingAcceptance')
                           : activeBooking.status === 'accepted'
-                          ? 'Worker Confirmed & En Route'
+                          ? t('priorityTrack.confirmedEnRoute')
                           : activeBooking.status === 'in_progress'
-                          ? 'Service In Progress'
+                          ? t('priorityTrack.serviceInProgress')
                           : activeBooking.status === 'no_worker_available'
-                          ? 'No Worker Available'
+                          ? t('priorityTrack.noWorkerAvailable')
                           : activeBooking.status === 'cancelled'
-                          ? 'Booking Cancelled'
-                          : 'Matching Highest Rated Pro'}
+                          ? t('priorityTrack.bookingCancelled')
+                          : t('priorityTrack.matchingPro')}
                       </span>
                     </div>
                     <span className="font-mono text-[11px] opacity-90">
-                      {etaMinutes != null ? `ETA: ~${etaMinutes} min` : 'ETA: calculating…'}
+                      {etaMinutes != null ? t('priorityTrack.etaMin', { min: etaMinutes }) : t('priorityTrack.etaCalculating')}
                     </span>
                   </div>
 
@@ -250,36 +252,36 @@ export default function PriorityBookings() {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                            {activeBooking.service_name || 'Emergency Service'}
+                            {activeBooking.service_name || t('priorityTrack.emergencyService')}
                           </span>
                           <span className="text-slate-400 font-mono text-xs">
                             #{String(activeBooking.booking_id || activeBooking.id).slice(-6)}
                           </span>
                         </div>
                         <h2 className="text-lg font-extrabold text-slate-900">
-                          {activeBooking.service_name || 'Home Service'}
+                          {activeBooking.service_name || t('priorityTrack.homeService')}
                         </h2>
                       </div>
                       <div className="text-right">
                         <div className="text-xl font-black text-slate-900">
                           {activeBooking.total_amount ? `$${activeBooking.total_amount}` : '—'}
                         </div>
-                        <span className="text-[10px] text-emerald-600 font-bold">Estimated Total</span>
+                        <span className="text-[10px] text-emerald-600 font-bold">{t('priorityTrack.estimatedTotal')}</span>
                       </div>
                     </div>
 
                     {/* Stepper Progress Bar */}
                     <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
                       <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
-                        <span className={activeBooking.status ? 'text-blue-600' : ''}>Dispatched</span>
+                        <span className={activeBooking.status ? 'text-blue-600' : ''}>{t('priorityTrack.dispatched')}</span>
                         <span className={['worker_pending', 'accepted', 'in_progress'].includes(activeBooking.status) ? 'text-blue-600' : ''}>
-                          Assigned
+                          {t('priorityTrack.assigned')}
                         </span>
                         <span className={['accepted', 'in_progress'].includes(activeBooking.status) ? 'text-emerald-600 font-black' : ''}>
-                          En Route
+                          {t('priorityTrack.enRoute')}
                         </span>
                         <span className={activeBooking.status === 'completed' ? 'text-emerald-600' : ''}>
-                          Completed
+                          {t('priorityTrack.completed')}
                         </span>
                       </div>
                       <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden flex">
@@ -312,14 +314,14 @@ export default function PriorityBookings() {
                               ) : null}
                             </div>
                             <div className="text-[11px] text-slate-500 mt-0.5">
-                              Verified Technician
+                              {t('priorityTrack.verifiedTechnician')}
                               {activeBooking.match_score
-                                ? ` • ${activeBooking.match_score}% Match Score`
+                                ? ` • ${t('priorityTrack.matchScore', { score: activeBooking.match_score })}`
                                 : ''}
                             </div>
                             {etaMinutes != null && (
                               <div className="text-[10px] text-emerald-700 font-semibold mt-0.5">
-                                Arrival Window: ~{etaMinutes} min
+                                {t('priorityTrack.arrivalWindow', { min: etaMinutes })}
                               </div>
                             )}
                           </div>
@@ -328,49 +330,54 @@ export default function PriorityBookings() {
                         <CallButton
                           bookingId={activeBooking.booking_id || activeBooking.id}
                           status={activeBooking.status}
-                          label="Call Pro"
+                          label={t('priorityTrack.callPro')}
                         />
                       </div>
                     ) : (
                       <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-3.5 text-center text-xs text-slate-500">
                         {activeBooking.status === 'no_worker_available' ? (
                           <div className="space-y-2">
-                            <p className="font-bold text-slate-700">All workers in your area are currently busy.</p>
+                            <p className="font-bold text-slate-700">{t('priorityTrack.allBusy')}</p>
                             <button
                               onClick={() => handleRematch(activeBooking.booking_id || activeBooking.id)}
                               disabled={actionId === (activeBooking.booking_id || activeBooking.id)}
                               className="text-xs bg-blue-600 text-white font-bold py-1.5 px-3 rounded-lg"
                             >
-                              Retry Search Now
+                              {t('priorityTrack.retrySearch')}
                             </button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
-                            <span>Matching with the nearest certified professional...</span>
+                            <span>{t('priorityTrack.matchingNearest')}</span>
                           </div>
                         )}
                       </div>
                     )}
 
+                    {/* Arrival OTP — share this with the worker on arrival */}
+                    {(activeBooking.status === 'accepted' || activeBooking.status === 'in_progress') && (
+                      <ArrivalOtpCard booking={activeBooking} />
+                    )}
+
                     {/* Booking Details List */}
                     <div className="space-y-2 text-xs border-t border-slate-100 pt-3">
                       <div className="flex items-start justify-between">
-                        <span className="text-slate-400 font-bold uppercase text-[10px]">Location:</span>
+                        <span className="text-slate-400 font-bold uppercase text-[10px]">{t('priorityTrack.locationLabel')}</span>
                         <span className="text-slate-800 font-semibold text-right max-w-xs truncate">
-                          {activeBooking.address || 'Address on file'}
+                          {activeBooking.address || t('priorityTrack.addressOnFile')}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-400 font-bold uppercase text-[10px]">Schedule:</span>
+                        <span className="text-slate-400 font-bold uppercase text-[10px]">{t('priorityTrack.scheduleLabel')}</span>
                         <span className="text-slate-800 font-semibold">
-                          {activeBooking.scheduled_date || 'Today'} at {activeBooking.scheduled_time || 'Immediate'}
+                          {activeBooking.scheduled_date || t('priorityTrack.today')} {t('priorityTrack.atTime')} {activeBooking.scheduled_time || t('priorityTrack.immediate')}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span className="text-slate-400 font-bold uppercase text-[10px]">Dispatch SLA:</span>
+                        <span className="text-slate-400 font-bold uppercase text-[10px]">{t('priorityTrack.dispatchSla')}</span>
                         <span className="text-emerald-700 font-bold flex items-center gap-1">
-                          <span>✓ Arrives in ≤45 min guarantee</span>
+                          <span>✓ {t('priorityTrack.slaGuarantee')}</span>
                         </span>
                       </div>
                     </div>
@@ -383,7 +390,7 @@ export default function PriorityBookings() {
                           disabled={actionId === (activeBooking.booking_id || activeBooking.id)}
                           className="w-full py-2.5 rounded-xl border border-red-200 text-red-600 font-bold text-xs hover:bg-red-50 transition-colors"
                         >
-                          Cancel Request
+                          {t('priorityTrack.cancelRequest')}
                         </button>
                       )}
                       {activeBooking.status === 'no_worker_available' && (
@@ -391,7 +398,7 @@ export default function PriorityBookings() {
                           onClick={() => handleRematch(activeBooking.booking_id || activeBooking.id)}
                           className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700"
                         >
-                          Find Another Technician
+                          {t('priorityTrack.findAnother')}
                         </button>
                       )}
                     </div>
@@ -403,7 +410,7 @@ export default function PriorityBookings() {
               {items.length > 1 && (
                 <div className="bg-white border border-outline-slate rounded-xl p-3 shadow-xs space-y-2">
                   <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-                    Your Priority History ({items.length})
+                    {t('priorityTrack.priorityHistory', { count: items.length })}
                   </div>
                   <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
                     {items.map((b) => (
@@ -417,8 +424,8 @@ export default function PriorityBookings() {
                         }`}
                       >
                         <div>
-                          <span className="font-bold text-slate-900 block">{b.service_name || 'Priority Booking'}</span>
-                          <span className="text-[10px] text-slate-500">{b.scheduled_date || 'Today'}</span>
+                          <span className="font-bold text-slate-900 block">{b.service_name || t('priorityTrack.priorityBooking')}</span>
+                          <span className="text-[10px] text-slate-500">{b.scheduled_date || t('priorityTrack.today')}</span>
                         </div>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase ${
@@ -429,7 +436,7 @@ export default function PriorityBookings() {
                               : 'bg-slate-100 text-slate-600'
                           }`}
                         >
-                          {b.status}
+                          {t(`status.${b.status}`, b.status)}
                         </span>
                       </div>
                     ))}
@@ -444,15 +451,15 @@ export default function PriorityBookings() {
                 <LiveTrackingMap
                   workerLocation={workerLocation}
                   customerLocation={customerLocation}
-                  workerName={activeBooking?.worker_name || activeBooking?.worker?.full_name || 'Assigned Specialist'}
-                  customerLabel={activeBooking?.address || 'Your Service Location'}
+                  workerName={activeBooking?.worker_name || activeBooking?.worker?.full_name || t('priorityTrack.assignedSpecialist')}
+                  customerLabel={activeBooking?.address || t('priorityTrack.yourServiceLocation')}
                   onRouteCalculated={(metrics) => setRouteMetrics(metrics)}
                   className="w-full h-full"
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 text-slate-400 gap-3">
                   <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-bold font-manrope">Resolving your service location…</span>
+                  <span className="text-xs font-bold font-manrope">{t('priorityTrack.resolvingLocation')}</span>
                 </div>
               )}
 
@@ -462,7 +469,7 @@ export default function PriorityBookings() {
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-[900] flex justify-center pointer-events-none">
                   <div className="bg-white/95 backdrop-blur border border-slate-200 rounded-xl px-4 py-2 shadow-md text-xs font-bold text-slate-700 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                    Waiting for the worker to share live GPS…
+                    {t('priorityTrack.waitingGps')}
                   </div>
                 </div>
               )}
@@ -476,13 +483,13 @@ export default function PriorityBookings() {
                 <span className="text-xs font-bold text-slate-800">
                   {isEnRoute
                     ? etaMinutes != null
-                      ? `Technician En Route • ~${etaMinutes} mins away (${distanceKm} km)`
-                      : 'Technician En Route • acquiring live route…'
-                    : 'Dispatch Radar Active • High priority status'}
+                      ? t('priorityTrack.technicianEnRoute', { min: etaMinutes, km: distanceKm })
+                      : t('priorityTrack.acquiringRoute')
+                    : t('priorityTrack.dispatchRadar')}
                 </span>
                 {hasGpsSignal && (
                   <span className="text-[9px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded border border-emerald-300">
-                    LIVE GPS
+                    {t('priorityTrack.liveGps')}
                   </span>
                 )}
               </div>
@@ -491,13 +498,13 @@ export default function PriorityBookings() {
               <div className="absolute bottom-4 left-4 right-16 bg-white/95 backdrop-blur-md border border-outline-slate rounded-xl p-3 shadow-md flex items-center justify-between text-xs z-[1000]">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                  <span className="font-bold text-slate-900">Real Road Telemetry</span>
+                  <span className="font-bold text-slate-900">{t('priorityTrack.realTelemetry')}</span>
                   <span className="text-[10px] text-slate-400">
                     ({routeMetrics?.source === 'google-maps' ? 'Google Maps Routes' : 'OSRM Turn-by-Turn'})
                   </span>
                 </div>
                 <span className="text-slate-500 text-[11px] hidden sm:inline">
-                  {hasGpsSignal ? 'Streaming real worker GPS coordinates' : 'Connecting to vehicle GPS'}
+                  {hasGpsSignal ? t('priorityTrack.streamingGps') : t('priorityTrack.connectingGps')}
                 </span>
               </div>
             </div>

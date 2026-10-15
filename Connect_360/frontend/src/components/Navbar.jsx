@@ -1,8 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import OnlineToggle from './OnlineToggle';
+import LanguageSwitcher from './LanguageSwitcher';
 
 export default function Navbar() {
+  const { t } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,22 +23,22 @@ export default function Navbar() {
 
   const navLinks = {
     customer: [
-      { to: '/customer/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { to: '/customer/workers', label: 'Find Workers', icon: 'search' },
-      { to: '/customer/bookings', label: 'My Bookings', icon: 'calendar_today' },
-      { to: '/customer/profile', label: 'Profile', icon: 'person' },
+      { to: '/customer/dashboard', label: t('nav.dashboard'), icon: 'dashboard' },
+      { to: '/customer/workers', label: t('nav.findWorkers'), icon: 'search' },
+      { to: '/customer/bookings', label: t('nav.myBookings'), icon: 'calendar_today' },
+      { to: '/customer/profile', label: t('nav.profile'), icon: 'person' },
     ],
     worker: [
-      { to: '/worker/dashboard', label: 'Dashboard', icon: 'dashboard' },
-      { to: '/worker/bookings', label: 'Bookings', icon: 'calendar_today' },
-      { to: '/worker/availability', label: 'Availability', icon: 'schedule' },
-      { to: '/worker/verification', label: 'Verification', icon: 'verified' },
-      { to: '/worker/profile', label: 'Profile', icon: 'person' },
+      { to: '/worker/dashboard', label: t('nav.dashboard'), icon: 'dashboard' },
+      { to: '/worker/bookings', label: t('nav.bookings'), icon: 'calendar_today' },
+      { to: '/worker/availability', label: t('nav.availability'), icon: 'schedule' },
+      { to: '/worker/verification', label: t('nav.verification'), icon: 'verified' },
+      { to: '/worker/profile', label: t('nav.profile'), icon: 'person' },
     ],
     admin: [
-      { to: '/admin/dashboard', label: 'Dashboard', icon: 'analytics' },
-      { to: '/admin/services', label: 'Services', icon: 'category' },
-      { to: '/admin/verifications', label: 'Verifications', icon: 'fact_check' },
+      { to: '/admin/dashboard', label: t('nav.dashboard'), icon: 'analytics' },
+      { to: '/admin/services', label: t('nav.services'), icon: 'category' },
+      { to: '/admin/verifications', label: t('nav.verifications'), icon: 'fact_check' },
     ],
   };
 
@@ -75,6 +79,8 @@ export default function Navbar() {
         )}
 
         <div className="flex items-center gap-2">
+          <LanguageSwitcher />
+          {isAuthenticated && user?.role === 'worker' && <OnlineToggle compact />}
           {isAuthenticated ? (
             <>
               <div className="hidden md:flex items-center gap-3">
@@ -101,10 +107,10 @@ export default function Navbar() {
           ) : (
             <div className="flex items-center gap-2">
               <Link to="/login" className="font-hanken text-label-md text-secondary hover:underline px-3 py-2">
-                Log In
+                {t('auth.login')}
               </Link>
               <Link to="/register" className="btn-primary !py-2 !px-4 !text-body-sm">
-                Sign Up
+                {t('auth.signup')}
               </Link>
             </div>
           )}
@@ -145,7 +151,7 @@ export default function Navbar() {
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-error font-hanken text-body-md hover:bg-error-container/30 transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">logout</span>
-                Log Out
+                {t('common.logout')}
               </button>
             </div>
           </div>

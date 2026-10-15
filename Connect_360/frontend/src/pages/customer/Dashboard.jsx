@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { servicesService } from '../../services/servicesService';
@@ -9,6 +10,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 
 export default function CustomerDashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [services, setServices] = useState([]);
   const [recentBookings, setRecentBookings] = useState([]);
@@ -44,9 +46,9 @@ export default function CustomerDashboard() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('dashboard.goodMorning');
+    if (hour < 17) return t('dashboard.goodAfternoon');
+    return t('dashboard.goodEvening');
   };
 
   function handleSearch() {
@@ -101,10 +103,10 @@ export default function CustomerDashboard() {
         {/* Welcome Section */}
         <section className="flex flex-col gap-stack-sm">
           <h1 className="font-manrope text-headline-lg-mobile md:text-headline-lg text-primary">
-            {getGreeting()}, {user?.fullName?.split(' ')[0] || 'there'}
+            {getGreeting()}, {user?.fullName?.split(' ')[0] || t('custDash.there')}
           </h1>
           <p className="font-hanken text-body-lg text-on-surface-variant">
-            What service do you need today?
+            {t('custDash.whatService')}
           </p>
         </section>
 
@@ -116,7 +118,7 @@ export default function CustomerDashboard() {
             </span>
             <input
               type="text"
-              placeholder="Search services..."
+              placeholder={t('custDash.searchServices')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-lg border border-outline-variant bg-surface-container-lowest focus:border-secondary focus:ring-2 focus:ring-secondary/20 font-hanken text-body-md outline-none transition-all placeholder:text-on-surface-variant/50"
@@ -126,7 +128,7 @@ export default function CustomerDashboard() {
             onClick={() => navigate('/customer/workers')}
             className="bg-primary-container text-on-primary h-12 px-6 rounded-lg font-hanken text-label-md hover:opacity-90 transition-opacity whitespace-nowrap active:scale-[0.98]"
           >
-            Find Professionals
+            {t('custDash.findProfessionals')}
           </button>
         </section>
 
@@ -141,10 +143,10 @@ export default function CustomerDashboard() {
           </span>
           <span className="flex-1">
             <span className="flex items-center gap-2">
-              <span className="font-manrope text-label-md text-primary">Priority Booking</span>
-              <span className="badge badge-priority !px-2 !py-0.5 text-label-sm">New</span>
+              <span className="font-manrope text-label-md text-primary">{t('custDash.priorityBooking')}</span>
+              <span className="badge badge-priority !px-2 !py-0.5 text-label-sm">{t('custDash.new')}</span>
             </span>
-            <span className="block font-hanken text-body-sm text-on-surface-variant">Let us find the best worker for you</span>
+            <span className="block font-hanken text-body-sm text-on-surface-variant">{t('custDash.findBestForYou')}</span>
           </span>
           <span className="material-symbols-outlined text-secondary">arrow_forward</span>
         </button>
@@ -155,7 +157,7 @@ export default function CustomerDashboard() {
             {/* Upcoming Booking */}
             {upcomingBooking && (
               <section className="flex flex-col gap-stack-md">
-                <h2 className="font-manrope text-headline-sm text-on-surface">Upcoming Booking</h2>
+                <h2 className="font-manrope text-headline-sm text-on-surface">{t('custDash.upcomingBooking')}</h2>
                 <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-level-1 flex flex-col md:flex-row gap-6 items-start md:items-center">
                   <div className="flex items-center gap-4 flex-1">
                     <div className="w-14 h-14 rounded-xl bg-surface-container-high flex items-center justify-center flex-shrink-0">
@@ -163,7 +165,7 @@ export default function CustomerDashboard() {
                     </div>
                     <div>
                       <h3 className="font-manrope text-headline-sm text-on-surface">
-                        {upcomingBooking.worker_name || 'Worker'}
+                        {upcomingBooking.worker_name || t('custDash.worker')}
                       </h3>
                       <p className="font-hanken text-body-md text-on-surface-variant">
                         {upcomingBooking.service_name}
@@ -185,7 +187,7 @@ export default function CustomerDashboard() {
                     to="/customer/bookings"
                     className="w-full md:w-auto bg-surface-container-lowest border border-outline-variant text-primary-container px-4 py-2 rounded-lg font-hanken text-label-md hover:bg-surface-container-low transition-colors text-center"
                   >
-                    View Details
+                    {t('custDash.viewDetails')}
                   </Link>
                 </div>
               </section>
@@ -194,9 +196,9 @@ export default function CustomerDashboard() {
             {/* Recommended Professionals */}
             <section className="flex flex-col gap-stack-md">
               <div className="flex justify-between items-end">
-                <h2 className="font-manrope text-headline-sm text-on-surface">Recommended Professionals</h2>
+                <h2 className="font-manrope text-headline-sm text-on-surface">{t('custDash.recommendedProfessionals')}</h2>
                 <Link to="/customer/workers" className="font-hanken text-label-md text-secondary hover:underline">
-                  View All
+                  {t('custDash.viewAll')}
                 </Link>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
@@ -234,17 +236,17 @@ export default function CustomerDashboard() {
                               star
                             </span>
                             <span className="font-hanken text-label-sm text-on-surface">
-                              {worker.rating_avg || 0} ({worker.rating_count || 0} reviews)
+                              {worker.rating_avg || 0} {t('custDash.reviews', { count: worker.rating_count || 0 })}
                             </span>
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="font-hanken text-body-sm text-on-surface-variant">
-                          {worker.experience_years || 0} yrs experience
+                          {t('custDash.yrsExperience', { count: worker.experience_years || 0 })}
                         </span>
                         <span className="font-hanken text-label-md text-primary">
-                          ₹{worker.hourly_rate || 0}/hr
+                          ₹{worker.hourly_rate || 0}{t('browse.perHr')}
                         </span>
                       </div>
                     </Link>
@@ -253,10 +255,10 @@ export default function CustomerDashboard() {
                   <div className="col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant p-8 text-center">
                     <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">group</span>
                     <p className="font-hanken text-body-md text-on-surface-variant">
-                      No recommended professionals yet. Browse our workers to get started.
+                      {t('custDash.noRecommended')}
                     </p>
                     <Link to="/customer/workers" className="btn-primary mt-4 inline-block">
-                      Browse Workers
+                      {t('custDash.browseWorkers')}
                     </Link>
                   </div>
                 )}
@@ -266,7 +268,7 @@ export default function CustomerDashboard() {
 
           {/* Right Column: Recent Activity */}
           <div className="flex flex-col gap-stack-md">
-            <h2 className="font-manrope text-headline-sm text-on-surface">Recent Activity</h2>
+            <h2 className="font-manrope text-headline-sm text-on-surface">{t('dashboard.recentActivity')}</h2>
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-level-1">
               {recentBookings.length > 0 ? (
                 <div className="relative pl-6 border-l border-outline-variant flex flex-col gap-6">
@@ -284,10 +286,10 @@ export default function CustomerDashboard() {
                         </span>
                       </div>
                       <p className="font-hanken text-body-md text-on-surface">
-                        {booking.status === 'completed' ? 'Completed' : 'Booked'}{' '}
+                        {booking.status === 'completed' ? t('custDash.completedLabel') : t('custDash.bookedLabel')}{' '}
                         <span className="font-semibold">{booking.service_name}</span>
                         {booking.worker_name && (
-                          <span className="text-on-surface-variant"> with {booking.worker_name}</span>
+                          <span className="text-on-surface-variant"> {t('custDash.withName', { name: booking.worker_name })}</span>
                         )}
                       </p>
                       <p className="font-hanken text-body-sm text-on-surface-variant mt-1">
@@ -302,7 +304,7 @@ export default function CustomerDashboard() {
                     history
                   </span>
                   <p className="font-hanken text-body-sm text-on-surface-variant">
-                    No recent activity yet.
+                    {t('custDash.noActivity')}
                   </p>
                 </div>
               )}
@@ -311,7 +313,7 @@ export default function CustomerDashboard() {
             {/* Quick Services */}
             {services.length > 0 && (
               <div className="flex flex-col gap-stack-sm">
-                <h3 className="font-manrope text-label-md text-on-surface">Quick Services</h3>
+                <h3 className="font-manrope text-label-md text-on-surface">{t('custDash.quickServices')}</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {services.slice(0, 6).map((service) => (
                     <Link
@@ -336,10 +338,10 @@ export default function CustomerDashboard() {
         {/* Header */}
         <div>
           <h2 className="font-manrope text-headline-lg text-on-background">
-            {getGreeting()}, {user?.fullName?.split(' ')[0] || 'there'}
+            {getGreeting()}, {user?.fullName?.split(' ')[0] || t('custDash.there')}
           </h2>
           <p className="font-hanken text-body-lg text-on-surface-variant mt-2">
-            Here's an overview of your services and upcoming activities.
+            {t('custDash.overviewSubtitle')}
           </p>
         </div>
 
@@ -350,18 +352,18 @@ export default function CustomerDashboard() {
             {/* Search & Filter Card */}
             <div className="bg-surface-container-lowest rounded-xl border border-outline-slate p-stack-md flex flex-row gap-4 items-end shadow-level-1 hover:shadow-level-2 transition-shadow">
               <div className="flex-1">
-                <label className="font-hanken text-label-md text-on-surface-variant block mb-2">What service do you need?</label>
+                <label className="font-hanken text-label-md text-on-surface-variant block mb-2">{t('custDash.whatServiceLabel')}</label>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="e.g. Plumbing, Cleaning..."
+                  placeholder={t('custDash.servicePlaceholder')}
                   className="w-full h-12 px-4 rounded-lg bg-surface-container-low border border-outline-slate font-hanken text-body-md focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none"
                 />
               </div>
               <div className="flex-1">
-                <label className="font-hanken text-label-md text-on-surface-variant block mb-2">Location</label>
+                <label className="font-hanken text-label-md text-on-surface-variant block mb-2">{t('custDash.location')}</label>
                 <div className="relative">
                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">location_on</span>
                   <input
@@ -369,7 +371,7 @@ export default function CustomerDashboard() {
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="Zip code or City"
+                    placeholder={t('custDash.locationPlaceholder')}
                     className="w-full h-12 pl-10 pr-4 rounded-lg bg-surface-container-low border border-outline-slate font-hanken text-body-md focus:border-secondary focus:ring-2 focus:ring-secondary/20 outline-none"
                   />
                 </div>
@@ -378,7 +380,7 @@ export default function CustomerDashboard() {
                 onClick={handleSearch}
                 className="h-12 px-6 bg-primary-container text-on-primary rounded-lg font-hanken text-label-md hover:opacity-90 transition-opacity whitespace-nowrap"
               >
-                Find Pros
+                {t('custDash.findPros')}
               </button>
             </div>
 
@@ -393,11 +395,11 @@ export default function CustomerDashboard() {
               </span>
               <span className="flex-1">
                 <span className="flex items-center gap-2">
-                  <span className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">Priority Booking</span>
-                  <span className="badge badge-priority">Let us match you</span>
+                  <span className="font-manrope text-headline-sm text-primary group-hover:text-secondary transition-colors">{t('custDash.priorityBooking')}</span>
+                  <span className="badge badge-priority">{t('custDash.letUsMatch')}</span>
                 </span>
                 <span className="block font-hanken text-body-md text-on-surface-variant mt-0.5">
-                  Tell us what you need and we'll automatically find the most suitable available worker.
+                  {t('custDash.priorityDesc')}
                 </span>
               </span>
               <span className="material-symbols-outlined text-secondary group-hover:translate-x-1 transition-transform">arrow_forward</span>
@@ -409,7 +411,7 @@ export default function CustomerDashboard() {
                 <div className="w-1/3 bg-surface-container relative flex items-center justify-center">
                   <span className="material-symbols-outlined text-primary text-[48px]">handyman</span>
                   <div className="absolute inset-0 bg-gradient-to-t from-primary/70 to-transparent flex items-end p-4">
-                    <span className="bg-secondary text-on-secondary px-3 py-1 rounded-full font-hanken text-label-sm uppercase tracking-wider">Upcoming</span>
+                    <span className="bg-secondary text-on-secondary px-3 py-1 rounded-full font-hanken text-label-sm uppercase tracking-wider">{t('custDash.upcoming')}</span>
                   </div>
                 </div>
                 <div className="p-stack-md flex-1 flex flex-col justify-between">
@@ -422,7 +424,7 @@ export default function CustomerDashboard() {
                     </div>
                     <p className="font-hanken text-body-md text-on-surface-variant flex items-center gap-2">
                       <span className="material-symbols-outlined text-[18px]">person</span>
-                      {upcomingBooking.worker_name || 'Worker'}
+                      {upcomingBooking.worker_name || t('custDash.worker')}
                     </p>
                   </div>
                   <div className="mt-6 flex flex-wrap gap-4 items-center justify-between border-t border-outline-slate pt-4">
@@ -436,7 +438,7 @@ export default function CustomerDashboard() {
                       to="/customer/bookings"
                       className="px-4 py-2 bg-primary-container text-on-primary rounded-lg font-hanken text-label-md hover:opacity-90 transition-opacity"
                     >
-                      Details
+                      {t('custDash.details')}
                     </Link>
                   </div>
                 </div>
@@ -446,8 +448,8 @@ export default function CustomerDashboard() {
             {/* Recommended Pros */}
             <div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="font-manrope text-headline-sm text-on-background">Recommended for you</h3>
-                <Link to="/customer/workers" className="font-hanken text-label-md text-secondary hover:underline">View all</Link>
+                <h3 className="font-manrope text-headline-sm text-on-background">{t('custDash.recommendedForYou')}</h3>
+                <Link to="/customer/workers" className="font-hanken text-label-md text-secondary hover:underline">{t('custDash.viewAll')}</Link>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 {recommended.length > 0 ? (
@@ -467,27 +469,27 @@ export default function CustomerDashboard() {
                               <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
                             )}
                           </div>
-                          <p className="font-hanken text-body-sm text-on-surface-variant">{worker.city || 'Professional'}</p>
+                          <p className="font-hanken text-body-sm text-on-surface-variant">{worker.city || t('custDash.professional')}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-secondary mb-3">
                         <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                         <span className="font-hanken text-label-md">{worker.rating_avg || 0}</span>
-                        <span className="font-hanken text-body-sm text-on-surface-variant">({worker.rating_count || 0} reviews)</span>
+                        <span className="font-hanken text-body-sm text-on-surface-variant">{t('custDash.reviews', { count: worker.rating_count || 0 })}</span>
                       </div>
                       <Link
                         to={`/customer/workers/${worker.id}`}
                         className="block w-full py-2 bg-surface-container-lowest border border-outline-slate text-on-surface rounded-lg font-hanken text-label-md hover:bg-surface-container transition-colors text-center"
                       >
-                        Book Now
+                        {t('custDash.bookNow')}
                       </Link>
                     </div>
                   ))
                 ) : (
                   <div className="col-span-3 bg-surface-container-lowest rounded-xl border border-outline-slate p-8 text-center">
                     <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">group</span>
-                    <p className="font-hanken text-body-md text-on-surface-variant">No recommended professionals yet.</p>
-                    <Link to="/customer/workers" className="btn-primary mt-4 inline-block">Browse Workers</Link>
+                    <p className="font-hanken text-body-md text-on-surface-variant">{t('custDash.noRecommended')}</p>
+                    <Link to="/customer/workers" className="btn-primary mt-4 inline-block">{t('custDash.browseWorkers')}</Link>
                   </div>
                 )}
               </div>
@@ -498,7 +500,7 @@ export default function CustomerDashboard() {
           <div className="col-span-4">
             <div className="bg-surface-container-lowest rounded-xl border border-outline-slate p-stack-md shadow-level-1 h-full flex flex-col">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-manrope text-headline-sm text-on-background">Recent Activity</h3>
+                <h3 className="font-manrope text-headline-sm text-on-background">{t('dashboard.recentActivity')}</h3>
                 <Link to="/customer/bookings" className="text-on-surface-variant hover:text-secondary">
                   <span className="material-symbols-outlined text-[20px]">more_horiz</span>
                 </Link>
@@ -512,10 +514,10 @@ export default function CustomerDashboard() {
                       <div key={booking.booking_id || index} className="relative pl-10">
                         <div className={`absolute left-[11px] top-1 w-2.5 h-2.5 rounded-full ring-4 ring-surface-container-lowest ${index === 0 ? 'bg-secondary' : 'bg-outline-slate'}`} />
                         <p className="font-hanken text-label-md text-on-background">
-                          {booking.status === 'completed' ? 'Service Completed' : 'Booking Confirmed'}
+                          {booking.status === 'completed' ? t('custDash.serviceCompleted') : t('custDash.bookingConfirmed')}
                         </p>
                         <p className="font-hanken text-body-sm text-on-surface-variant mt-1">
-                          {booking.service_name}{booking.worker_name && ` with ${booking.worker_name}`}
+                          {booking.service_name}{booking.worker_name && ` ${t('custDash.withName', { name: booking.worker_name })}`}
                         </p>
                         <p className="font-hanken text-label-sm text-outline mt-2">{booking.scheduled_date}</p>
                       </div>
@@ -525,7 +527,7 @@ export default function CustomerDashboard() {
               ) : (
                 <div className="flex-1 text-center py-6">
                   <span className="material-symbols-outlined text-on-surface-variant text-[32px] mb-2">history</span>
-                  <p className="font-hanken text-body-sm text-on-surface-variant">No recent activity yet.</p>
+                  <p className="font-hanken text-body-sm text-on-surface-variant">{t('custDash.noActivity')}</p>
                 </div>
               )}
 
@@ -533,12 +535,12 @@ export default function CustomerDashboard() {
                 to="/customer/bookings"
                 className="w-full mt-6 py-2 bg-surface-container-lowest border border-outline-slate text-on-surface rounded-lg font-hanken text-label-md hover:bg-surface-container transition-colors text-center"
               >
-                View All Activity
+                {t('custDash.viewAllActivity')}
               </Link>
 
               {services.length > 0 && (
                 <div className="flex flex-col gap-stack-sm mt-6 pt-6 border-t border-outline-slate">
-                  <h4 className="font-manrope text-label-md text-on-surface">Quick Services</h4>
+                  <h4 className="font-manrope text-label-md text-on-surface">{t('custDash.quickServices')}</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {services.slice(0, 6).map((service) => (
                       <Link

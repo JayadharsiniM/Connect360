@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 /**
  * PriorityStatus — single reusable source of truth for rendering a Priority
  * Booking's lifecycle state (icon, label, description, progress, tone).
@@ -9,50 +11,50 @@
 // step index drives the progress bar (0..4). Terminal/failure states use -1.
 const CONFIG = {
   matching: {
-    label: 'Finding the best worker…',
-    description: 'We are matching your request with the most suitable available professional.',
+    labelKey: 'priorityStatus.matchingLabel',
+    descriptionKey: 'priorityStatus.matchingDesc',
     icon: 'search',
     tone: 'progress',
     step: 1,
   },
   rematching: {
-    label: 'Finding another worker…',
-    description: 'The previous professional was unavailable. We are matching you with the next best option.',
+    labelKey: 'priorityStatus.rematchingLabel',
+    descriptionKey: 'priorityStatus.rematchingDesc',
     icon: 'autorenew',
     tone: 'progress',
     step: 1,
   },
   worker_pending: {
-    label: 'Worker found',
-    description: 'Waiting for the professional to confirm your request.',
+    labelKey: 'priorityStatus.workerPendingLabel',
+    descriptionKey: 'priorityStatus.workerPendingDesc',
     icon: 'hourglass_top',
     tone: 'progress',
     step: 3,
   },
   accepted: {
-    label: 'Booking confirmed',
-    description: 'Your professional accepted. You are all set.',
+    labelKey: 'priorityStatus.acceptedLabel',
+    descriptionKey: 'priorityStatus.acceptedDesc',
     icon: 'check_circle',
     tone: 'success',
     step: 4,
   },
   no_worker_available: {
-    label: "We couldn't find an available worker",
-    description: 'No professional matching your requirements is available right now.',
+    labelKey: 'priorityStatus.noWorkerLabel',
+    descriptionKey: 'priorityStatus.noWorkerDesc',
     icon: 'person_off',
     tone: 'error',
     step: -1,
   },
   expired: {
-    label: 'Offer expired',
-    description: 'The professional did not respond in time. We can try another one.',
+    labelKey: 'priorityStatus.expiredLabel',
+    descriptionKey: 'priorityStatus.expiredDesc',
     icon: 'timer_off',
     tone: 'warning',
     step: -1,
   },
   cancelled: {
-    label: 'Request cancelled',
-    description: 'This priority request was cancelled.',
+    labelKey: 'priorityStatus.cancelledLabel',
+    descriptionKey: 'priorityStatus.cancelledDesc',
     icon: 'cancel',
     tone: 'neutral',
     step: -1,
@@ -71,8 +73,9 @@ const TOTAL_STEPS = 4;
 
 export function priorityStatusMeta(status) {
   return CONFIG[status] || {
-    label: status,
-    description: '',
+    labelKey: null,
+    descriptionKey: null,
+    rawLabel: status,
     icon: 'help',
     tone: 'neutral',
     step: -1,
@@ -84,10 +87,13 @@ export function priorityStatusMeta(status) {
  * @param {boolean} compact - condensed inline layout (for cards)
  */
 export default function PriorityStatus({ status, compact = false }) {
+  const { t } = useTranslation();
   const meta = priorityStatusMeta(status);
   const toneClass = TONE_CLASSES[meta.tone] || TONE_CLASSES.neutral;
   const inProgress = meta.tone === 'progress';
   const progressPct = meta.step >= 0 ? Math.round((meta.step / TOTAL_STEPS) * 100) : 0;
+  const label = meta.labelKey ? t(meta.labelKey) : meta.rawLabel;
+  const description = meta.descriptionKey ? t(meta.descriptionKey) : '';
 
   if (compact) {
     return (
@@ -95,7 +101,7 @@ export default function PriorityStatus({ status, compact = false }) {
         <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
           {meta.icon}
         </span>
-        {meta.label}
+        {label}
       </span>
     );
   }
@@ -108,9 +114,9 @@ export default function PriorityStatus({ status, compact = false }) {
           {meta.icon}
         </span>
         <div>
-          <p className="font-manrope text-headline-sm text-primary">{meta.label}</p>
-          {meta.description && (
-            <p className="font-hanken text-body-sm text-on-surface-variant mt-0.5">{meta.description}</p>
+          <p className="font-manrope text-headline-sm text-primary">{label}</p>
+          {description && (
+            <p className="font-hanken text-body-sm text-on-surface-variant mt-0.5">{description}</p>
           )}
         </div>
       </div>

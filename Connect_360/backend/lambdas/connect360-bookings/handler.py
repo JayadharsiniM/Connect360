@@ -17,9 +17,18 @@ from response import success, created, error, not_found, forbidden, server_error
 from auth_helpers import get_user_claims, get_user_sub, get_user_role, get_path_param, get_query_param, get_body
 import calling_provider
 import priority_handler
+import reminders_handler
+import payments_handler
+import otp_handler
 
 
 def lambda_handler(event, context):
+    # ---- Scheduled overdue sweep (EventBridge) ----
+    # The reminders EventBridge rule invokes this Lambda directly (not via API
+    # Gateway) with a marker so we run the server-side overdue monitor.
+    if event.get('source') == 'connect360.reminders' or event.get('task') == 'sweep_overdue_bookings':
+        return reminders_handler.sweep_overdue_bookings()
+
     method = event.get('httpMethod', '')
     resource = event.get('resource', '')
 
@@ -34,12 +43,26 @@ def lambda_handler(event, context):
             return cancel_booking(event)
         elif method == 'GET' and resource == '/api/worker/bookings':
             return list_worker_bookings(event)
+        elif method == 'GET' and resource == '/api/worker/overdue-bookings':
+            return list_worker_overdue_bookings(event)
         elif method == 'GET' and resource == '/api/worker/bookings/{id}':
             return get_worker_booking_detail(event)
+        # ---- Notifications (overdue reminders + priority alerts) ----
+        elif method == 'GET' and resource == '/api/notifications':
+            return list_notifications(event)
+        elif method == 'PUT' and '/notifications/{id}/read' in resource:
+            return mark_notification_read(event)
         elif method == 'PUT' and '/worker/bookings/{id}/respond' in resource:
             return respond_to_booking(event)
         elif method == 'PUT' and '/worker/bookings/{id}/status' in resource:
             return update_booking_status(event)
+        # ---- Arrival OTP (Ola/Uber-style verification) ----
+        elif method == 'GET' and resource == '/api/bookings/{id}/arrival-otp':
+            return get_arrival_otp(event)
+        elif method == 'POST' and '/bookings/{id}/arrival-otp/regenerate' in resource:
+            return regenerate_arrival_otp(event)
+        elif method == 'POST' and '/bookings/{id}/verify-arrival-otp' in resource:
+            return verify_arrival_otp(event)
         elif method == 'POST' and resource == '/api/reviews':
             return create_review(event)
         elif method == 'GET' and '/workers/{id}/reviews' in resource:
@@ -66,6 +89,22 @@ def lambda_handler(event, context):
             return priority_handler.rematch_priority_booking(event)
         elif method == 'PUT' and '/priority/{id}/cancel' in resource:
             return priority_handler.cancel_priority_booking(event)
+        # ---- Razorpay Payments (TEST MODE) — delegated to payments_handler ----
+        elif method == 'POST' and resource == '/api/payments/create-order':
+            return payments_handler.create_order(event)
+        elif method == 'POST' and resource == '/api/payments/verify':
+            return payments_handler.verify_payment(event)
+        elif method == 'POST' and resource == '/api/payments/webhook':
+            # Public route (no Cognito authorizer) — authenticated by signature.
+            return payments_handler.handle_webhook(event)
+        elif method == 'GET' and resource == '/api/payments/{booking_id}':
+            return payments_handler.get_payment_status(event)
+        elif method == 'GET' and resource == '/api/admin/payments':
+            return list_admin_payments(event)
+        elif method == 'GET' and resource == '/api/admin/payments/analytics':
+            return admin_payment_analytics(event)
+        elif method == 'GET' and resource == '/api/worker/payments':
+            return list_worker_payments(event)
         else:
             return error('Route not found', status_code=404)
     except Exception as e:
@@ -106,6 +145,17 @@ def create_booking(event):
 
     if not worker_profile or not worker_profile.get('is_verified'):
         return error('Worker is not available or not verified')
+
+    # The selected service must exist on the platform...
+    if not service:
+        return error('Selected service does not exist')
+
+    # ...and the worker must actually offer it. A worker's offered services are
+    # stored as USER#{worker}/SERVICE#{service_id} sub-items. Enforce this
+    # server-side so a crafted request can't book a service the worker doesn't do.
+    worker_service = get_item(f'USER#{worker_id}', f'SERVICE#{service_id}')
+    if not worker_service:
+        return error('This professional does not offer the selected service', status_code=409)
 
     duration_hours = float(body.get('duration_hours', 1))
     hourly_rate = float(worker_profile.get('hourly_rate', 0))
@@ -193,7 +243,10 @@ def list_customer_bookings(event):
     if status_filter:
         bookings = [b for b in bookings if b.get('status') == status_filter]
 
-    bookings.sort(key=lambda b: b.get('scheduled_date', ''), reverse=True)
+    # Most recently BOOKED first (by creation time), not by appointment date,
+    # so a just-created booking always appears at the top. Fall back to the
+    # scheduled date when created_at is missing (legacy records).
+    bookings.sort(key=lambda b: (b.get('created_at') or b.get('scheduled_date', '')), reverse=True)
     return success({'bookings': bookings, 'count': len(bookings)})
 
 
@@ -239,7 +292,8 @@ def list_worker_bookings(event):
     if status_filter:
         bookings = [b for b in bookings if b.get('status') == status_filter]
 
-    bookings.sort(key=lambda b: b.get('scheduled_date', ''), reverse=True)
+    # Most recently booked first (creation time), falling back to schedule.
+    bookings.sort(key=lambda b: (b.get('created_at') or b.get('scheduled_date', '')), reverse=True)
     return success({'bookings': bookings, 'count': len(bookings)})
 
 
@@ -252,11 +306,154 @@ def get_worker_booking_detail(event):
     return success({'booking': decimal_to_float(booking)})
 
 
+def list_worker_overdue_bookings(event):
+    """
+    GET /api/worker/overdue-bookings
+
+    Returns this worker's overdue bookings (scheduled time passed, still not
+    completed). Runs a lazy sweep first so reminders stay correct even if the
+    EventBridge schedule is disabled, mirroring the priority 'lazy expiry' model.
+    """
+    role = get_user_role(event)
+    if role != 'worker':
+        return forbidden('Only workers can access this endpoint')
+
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return error('User not found')
+
+    # Lazy sweep (best-effort; never block the response on it).
+    try:
+        reminders_handler.sweep_overdue_bookings()
+    except Exception as e:  # noqa: BLE001
+        print(f"[bookings] lazy overdue sweep failed: {type(e).__name__}")
+
+    items = query_items(f'WORKER_BOOKING#{worker_id}', sk_begins_with='BOOKING#')
+    overdue = []
+    for ref in items:
+        booking_id = ref.get('booking_id')
+        booking = get_item(f'BOOKING#{booking_id}', 'METADATA') if booking_id else None
+        if not booking:
+            continue
+        if booking.get('overdue_flag') and booking.get('status') in reminders_handler.OVERDUE_CANDIDATE_STATUSES:
+            overdue.append(decimal_to_float({
+                'booking_id': booking_id,
+                'booking_type': booking.get('booking_type', 'manual'),
+                'customer_name': booking.get('customer_name', ''),
+                'service_name': booking.get('service_name', ''),
+                'scheduled_date': booking.get('scheduled_date', ''),
+                'scheduled_time': booking.get('scheduled_time', ''),
+                'status': booking.get('status'),
+                'address': booking.get('address', ''),
+                'total_amount': booking.get('total_amount', 0),
+                'overdue_since': booking.get('overdue_since', ''),
+            }))
+
+    overdue.sort(key=lambda b: b.get('scheduled_date', ''))
+    return success({'overdue_bookings': overdue, 'count': len(overdue)})
+
+
+# =============================================================================
+# Notifications (overdue reminders + priority alerts). Reuses NOTIF# items.
+# =============================================================================
+def list_notifications(event):
+    """GET /api/notifications - current user's notifications (newest first)."""
+    user_id = _get_user_id_from_sub(get_user_sub(event))
+    if not user_id:
+        return error('User not found')
+
+    unread_only = (get_query_param(event, 'unread') or '').lower() == 'true'
+    notifs = reminders_handler.list_notifications(user_id, unread_only=unread_only)
+
+    # Expose the SK as a stable client-side id for the mark-read call.
+    for n in notifs:
+        n['notification_id'] = n.get('SK', '')
+        for k in ('PK', 'SK', 'TTL'):
+            n.pop(k, None)
+
+    unread = len([n for n in notifs if not n.get('read')])
+    return success({'notifications': notifs, 'count': len(notifs), 'unread_count': unread})
+
+
+def mark_notification_read(event):
+    """PUT /api/notifications/{id}/read - mark one notification as read."""
+    user_id = _get_user_id_from_sub(get_user_sub(event))
+    if not user_id:
+        return error('User not found')
+
+    # The path param is the URL-safe notification id; the real SK is sent in the
+    # body (SKs contain '#' and ':' which are awkward in a path). Fall back to
+    # reconstructing from a booking_id for overdue reminders.
+    body = get_body(event)
+    notification_sk = body.get('notification_id') or body.get('sk')
+    if not notification_sk:
+        booking_id = get_path_param(event, 'id')
+        if booking_id:
+            notification_sk = f'NOTIF#OVERDUE#{booking_id}'
+    if not notification_sk:
+        return error('notification_id is required')
+
+    reminders_handler.mark_notification_read(user_id, notification_sk)
+    return success({'message': 'Notification marked as read'})
+
+
+# =============================================================================
+# Admin payments listing (Razorpay). Admin-gated; reuses payments_handler.
+# =============================================================================
+def list_admin_payments(event):
+    """GET /api/admin/payments?status=... - admin payment management view."""
+    role = get_user_role(event)
+    if role != 'admin':
+        return forbidden('Only admins can list payments')
+
+    status_filter = get_query_param(event, 'status')
+    records = payments_handler.list_payments_by_status(status_filter)
+    payments = [payments_handler._payment_public_view(p) for p in records]
+    # Attach customer/worker names for the admin table (from the booking record).
+    for p in payments:
+        booking = get_item(f'BOOKING#{p["booking_id"]}', 'METADATA') if p.get('booking_id') else None
+        if booking:
+            p['customer_name'] = booking.get('customer_name', '')
+            p['worker_name'] = booking.get('worker_name', '')
+            p['service_name'] = booking.get('service_name', '')
+    payments.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+    return success({'payments': payments, 'count': len(payments)})
+
+
+def admin_payment_analytics(event):
+    """GET /api/admin/payments/analytics - real revenue/commission analytics."""
+    role = get_user_role(event)
+    if role != 'admin':
+        return forbidden('Only admins can access payment analytics')
+    return success(payments_handler.build_admin_analytics())
+
+
+# =============================================================================
+# Worker earnings & payments (Razorpay). Worker-gated; own bookings only.
+# =============================================================================
+def list_worker_payments(event):
+    """GET /api/worker/payments - worker earnings dashboard (list + summary)."""
+    role = get_user_role(event)
+    if role != 'worker':
+        return forbidden('Only workers can access their earnings')
+
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return error('User not found')
+
+    items, summary = payments_handler.list_worker_payments(worker_id)
+    return success({'payments': items, 'summary': summary, 'count': len(items)})
+
+
 def respond_to_booking(event):
     """PUT /api/worker/bookings/{id}/respond"""
     role = get_user_role(event)
     if role != 'worker':
         return forbidden('Only workers can respond to bookings')
+
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return error('User not found')
 
     booking_id = get_path_param(event, 'id')
     body = get_body(event)
@@ -268,6 +465,9 @@ def respond_to_booking(event):
     booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
     if not booking:
         return not_found('Booking not found')
+    # Ownership: only the assigned worker may respond to this booking.
+    if booking.get('worker_id') != worker_id:
+        return forbidden('You are not assigned to this booking')
     if booking['status'] != 'pending':
         return error('Only pending bookings can be responded to')
 
@@ -283,23 +483,137 @@ def update_booking_status(event):
     if role != 'worker':
         return forbidden('Only workers can update booking status')
 
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return error('User not found')
+
     booking_id = get_path_param(event, 'id')
     body = get_body(event)
     new_status = body.get('status')
 
-    valid_transitions = {'accepted': ['in_progress'], 'in_progress': ['completed']}
+    # Note: accepted -> in_progress is intentionally NOT allowed here. Starting
+    # the service requires successful arrival-OTP verification via
+    # POST /api/bookings/{id}/verify-arrival-otp. Clicking "start" alone must
+    # never move a booking to in_progress.
+    valid_transitions = {'in_progress': ['completed']}
 
     booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
     if not booking:
         return not_found('Booking not found')
+    # Ownership: only the assigned worker may change this booking's status
+    # (frontend hiding the button is not sufficient — enforce server-side).
+    if booking.get('worker_id') != worker_id:
+        return forbidden('You are not assigned to this booking')
 
     current = booking['status']
+    if current == 'accepted' and new_status == 'in_progress':
+        return error('Verify the customer\'s arrival OTP to start the service', status_code=409)
     if new_status not in valid_transitions.get(current, []):
         return error(f'Cannot transition from "{current}" to "{new_status}"')
 
     _update_booking_status(booking_id, new_status, booking)
 
+    # If this booking was flagged overdue, resolving it clears the flag and the
+    # worker's overdue reminder so it stops showing in the dashboard.
+    if booking.get('overdue_flag'):
+        reminders_handler.clear_booking_overdue(booking)
+
     return success({'message': f'Booking status updated to {new_status}', 'status': new_status})
+
+
+# =============================================================================
+# Arrival OTP (Ola/Uber-style): customer displays, worker verifies.
+# =============================================================================
+def get_arrival_otp(event):
+    """GET /api/bookings/{id}/arrival-otp - owning customer retrieves the code."""
+    role = get_user_role(event)
+    if role != 'customer':
+        return forbidden('Only customers can view the arrival OTP')
+
+    customer_id = _get_user_id_from_sub(get_user_sub(event))
+    if not customer_id:
+        return error('User not found')
+
+    booking_id = get_path_param(event, 'id')
+    booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
+    if not booking:
+        return not_found('Booking not found')
+    if booking.get('customer_id') != customer_id:
+        return forbidden('This booking does not belong to you')
+
+    payload, err = otp_handler.get_customer_otp(booking, regenerate=False)
+    if err:
+        return error(err)
+    return success(payload)
+
+
+def regenerate_arrival_otp(event):
+    """POST /api/bookings/{id}/arrival-otp/regenerate - owner regenerates (cooldown)."""
+    role = get_user_role(event)
+    if role != 'customer':
+        return forbidden('Only customers can regenerate the arrival OTP')
+
+    customer_id = _get_user_id_from_sub(get_user_sub(event))
+    if not customer_id:
+        return error('User not found')
+
+    booking_id = get_path_param(event, 'id')
+    booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
+    if not booking:
+        return not_found('Booking not found')
+    if booking.get('customer_id') != customer_id:
+        return forbidden('This booking does not belong to you')
+
+    payload, err = otp_handler.get_customer_otp(booking, regenerate=True)
+    if err:
+        return error(err, status_code=429)
+    return success(payload)
+
+
+def verify_arrival_otp(event):
+    """POST /api/bookings/{id}/verify-arrival-otp - assigned worker verifies."""
+    role = get_user_role(event)
+    if role != 'worker':
+        return forbidden('Only workers can verify the arrival OTP')
+
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return error('User not found')
+
+    booking_id = get_path_param(event, 'id')
+    booking = get_item(f'BOOKING#{booking_id}', 'METADATA')
+    if not booking:
+        return not_found('Booking not found')
+    # Ownership: only the assigned worker may verify / start.
+    if booking.get('worker_id') != worker_id:
+        return forbidden('You are not assigned to this booking')
+
+    body = get_body(event)
+    result, err, status_code = otp_handler.verify_arrival_otp(booking, body.get('otp'))
+    if err:
+        return error(err, status_code=status_code)
+
+    # Sync the denormalized customer/worker refs to in_progress so all
+    # dashboards show a consistent status (METADATA was updated atomically).
+    _sync_refs_status(booking, 'in_progress')
+    return success(result)
+
+
+def _sync_refs_status(booking, new_status):
+    """Mirror a status change onto the customer + worker booking refs."""
+    booking_id = booking.get('id')
+    customer_id = booking.get('customer_id')
+    worker_id = booking.get('worker_id')
+    if customer_id:
+        try:
+            update_item(f'USER#{customer_id}', f'BOOKING#{booking_id}', {'status': new_status})
+        except Exception:  # noqa: BLE001
+            pass
+    if worker_id:
+        try:
+            update_item(f'WORKER_BOOKING#{worker_id}', f'BOOKING#{booking_id}', {'status': new_status})
+        except Exception:  # noqa: BLE001
+            pass
 
 
 def _update_booking_status(booking_id, new_status, booking, reason=None):

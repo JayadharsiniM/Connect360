@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { adminService } from '../../services/adminService';
 import StatusBadge from '../../components/StatusBadge';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -7,6 +8,7 @@ const CATEGORY_COLORS = ['bg-secondary', 'bg-primary', 'bg-surface-tint', 'bg-se
 
 // Inline SVG line chart built from real trend data (no Chart.js dependency).
 function TrendChart({ trend }) {
+  const { t } = useTranslation();
   const width = 640;
   const height = 260;
   const pad = 8;
@@ -15,20 +17,20 @@ function TrendChart({ trend }) {
     return (
       <div className="h-[260px] flex flex-col items-center justify-center text-on-surface-variant">
         <span className="material-symbols-outlined text-[40px] mb-2">show_chart</span>
-        <p className="font-hanken text-body-sm">No revenue data yet</p>
+        <p className="font-hanken text-body-sm">{t('adminRevenue.noRevenueData')}</p>
       </div>
     );
   }
 
-  const amounts = trend.map((t) => t.amount);
+  const amounts = trend.map((m) => m.amount);
   const maxAmt = Math.max(...amounts, 1);
   const n = trend.length;
   const stepX = n > 1 ? (width - pad * 2) / (n - 1) : 0;
 
-  const points = trend.map((t, i) => {
+  const points = trend.map((m, i) => {
     const x = pad + i * stepX;
-    const y = height - pad - (t.amount / maxAmt) * (height - pad * 2);
-    return { x, y, ...t };
+    const y = height - pad - (m.amount / maxAmt) * (height - pad * 2);
+    return { x, y, ...m };
   });
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
@@ -50,8 +52,8 @@ function TrendChart({ trend }) {
         ))}
       </svg>
       <div className="flex justify-between mt-2 px-1">
-        {trend.map((t) => (
-          <span key={t.month} className="font-hanken text-label-sm text-on-surface-variant">{t.month.slice(5)}</span>
+        {trend.map((m) => (
+          <span key={m.month} className="font-hanken text-label-sm text-on-surface-variant">{m.month.slice(5)}</span>
         ))}
       </div>
     </div>
@@ -59,6 +61,7 @@ function TrendChart({ trend }) {
 }
 
 export default function RevenueOverview() {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -74,7 +77,7 @@ export default function RevenueOverview() {
       const res = await adminService.getRevenue();
       setData(res.data);
     } catch (err) {
-      setError('Failed to load revenue analytics.');
+      setError(t('adminRevenue.loadFailed'));
       console.error(err);
     } finally {
       setLoading(false);
@@ -100,9 +103,9 @@ export default function RevenueOverview() {
       <DashboardLayout>
         <div className="bg-surface-container-lowest rounded-xl border border-outline-slate p-12 text-center">
           <span className="material-symbols-outlined text-on-surface-variant text-[48px] mb-3">error</span>
-          <h3 className="font-manrope text-headline-sm text-on-surface mb-2">Error</h3>
+          <h3 className="font-manrope text-headline-sm text-on-surface mb-2">{t('adminRevenue.error')}</h3>
           <p className="font-hanken text-body-md text-on-surface-variant">{error}</p>
-          <button onClick={load} className="btn-primary mt-4">Retry</button>
+          <button onClick={load} className="btn-primary mt-4">{t('adminRevenue.retry')}</button>
         </div>
       </DashboardLayout>
     );
@@ -119,8 +122,8 @@ export default function RevenueOverview() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="font-manrope text-headline-lg text-primary">Revenue Overview</h2>
-            <p className="font-hanken text-body-md text-on-surface-variant mt-1">Financial performance across all completed services.</p>
+            <h2 className="font-manrope text-headline-lg text-primary">{t('adminRevenue.title')}</h2>
+            <p className="font-hanken text-body-md text-on-surface-variant mt-1">{t('adminRevenue.subtitle')}</p>
           </div>
         </div>
 
@@ -128,12 +131,12 @@ export default function RevenueOverview() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
           <div className="bg-surface-container-lowest rounded-lg border border-outline-slate p-stack-lg flex flex-col justify-between">
             <div>
-              <h3 className="font-hanken text-label-md text-on-surface-variant mb-2 uppercase">Total Revenue</h3>
+              <h3 className="font-hanken text-label-md text-on-surface-variant mb-2 uppercase">{t('adminRevenue.totalRevenue')}</h3>
               <div className="font-manrope text-display-lg text-primary">₹{(summary.total_revenue || 0).toLocaleString('en-IN')}</div>
             </div>
             <div className="mt-stack-md flex items-center text-secondary">
               <span className="material-symbols-outlined mr-1 text-sm">payments</span>
-              <span className="font-hanken text-label-md">From {summary.completed_bookings || 0} completed bookings</span>
+              <span className="font-hanken text-label-md">{t('adminRevenue.fromCompletedBookings', { count: summary.completed_bookings || 0 })}</span>
             </div>
           </div>
           <div className="bg-surface-container-lowest rounded-lg border border-outline-slate p-stack-md flex flex-col justify-center">
@@ -141,20 +144,20 @@ export default function RevenueOverview() {
               <div className="w-10 h-10 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary">
                 <span className="material-symbols-outlined">receipt_long</span>
               </div>
-              <span className="font-hanken text-label-sm bg-surface-container px-2 py-1 rounded text-on-surface-variant">Completed Bookings</span>
+              <span className="font-hanken text-label-sm bg-surface-container px-2 py-1 rounded text-on-surface-variant">{t('adminRevenue.completedBookings')}</span>
             </div>
             <div className="font-manrope text-headline-md text-primary">{summary.completed_bookings || 0}</div>
-            <p className="font-hanken text-body-sm text-on-surface-variant mt-1">Paid & completed</p>
+            <p className="font-hanken text-body-sm text-on-surface-variant mt-1">{t('adminRevenue.paidCompleted')}</p>
           </div>
           <div className="bg-surface-container-lowest rounded-lg border border-outline-slate p-stack-md flex flex-col justify-center">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-full bg-secondary-fixed/50 flex items-center justify-center text-secondary">
                 <span className="material-symbols-outlined">local_offer</span>
               </div>
-              <span className="font-hanken text-label-sm bg-surface-container px-2 py-1 rounded text-on-surface-variant">Avg. Ticket</span>
+              <span className="font-hanken text-label-sm bg-surface-container px-2 py-1 rounded text-on-surface-variant">{t('adminRevenue.avgTicket')}</span>
             </div>
             <div className="font-manrope text-headline-md text-primary">₹{(summary.avg_ticket || 0).toLocaleString('en-IN')}</div>
-            <p className="font-hanken text-body-sm text-on-surface-variant mt-1">Across all categories</p>
+            <p className="font-hanken text-body-sm text-on-surface-variant mt-1">{t('adminRevenue.acrossAllCategories')}</p>
           </div>
         </div>
 
@@ -162,14 +165,14 @@ export default function RevenueOverview() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
           <div className="lg:col-span-2 bg-surface-container-lowest rounded-lg border border-outline-slate p-stack-md">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="font-manrope text-headline-sm text-primary">Revenue Trend</h3>
-              <span className="font-hanken text-label-sm text-on-surface-variant">Monthly</span>
+              <h3 className="font-manrope text-headline-sm text-primary">{t('adminRevenue.revenueTrend')}</h3>
+              <span className="font-hanken text-label-sm text-on-surface-variant">{t('adminRevenue.monthly')}</span>
             </div>
             <TrendChart trend={trend} />
           </div>
 
           <div className="lg:col-span-1 bg-surface-container-lowest rounded-lg border border-outline-slate p-stack-md">
-            <h3 className="font-manrope text-headline-sm text-primary mb-6">By Category</h3>
+            <h3 className="font-manrope text-headline-sm text-primary mb-6">{t('adminRevenue.byCategory')}</h3>
             {categories.length > 0 ? (
               <div className="flex flex-col gap-6">
                 {categories.map((cat, i) => (
@@ -188,7 +191,7 @@ export default function RevenueOverview() {
                 ))}
               </div>
             ) : (
-              <p className="font-hanken text-body-sm text-on-surface-variant text-center py-8">No category data yet</p>
+              <p className="font-hanken text-body-sm text-on-surface-variant text-center py-8">{t('adminRevenue.noCategoryData')}</p>
             )}
           </div>
         </div>
@@ -196,28 +199,28 @@ export default function RevenueOverview() {
         {/* Transactions */}
         <div className="bg-surface-container-lowest rounded-lg border border-outline-slate overflow-hidden">
           <div className="p-stack-md border-b border-outline-slate">
-            <h3 className="font-manrope text-headline-sm text-primary">Recent Transactions</h3>
+            <h3 className="font-manrope text-headline-sm text-primary">{t('adminRevenue.recentTransactions')}</h3>
           </div>
           {transactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-surface-container border-b border-outline-slate">
-                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">Date</th>
-                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">Customer</th>
-                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">Service</th>
-                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider text-right">Amount</th>
-                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
+                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">{t('adminRevenue.date')}</th>
+                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">{t('adminRevenue.customer')}</th>
+                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">{t('adminRevenue.service')}</th>
+                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider text-right">{t('adminRevenue.amount')}</th>
+                    <th className="p-4 font-hanken text-label-md text-on-surface-variant uppercase tracking-wider">{t('adminRevenue.status')}</th>
                   </tr>
                 </thead>
                 <tbody className="font-hanken text-body-sm text-on-surface">
-                  {transactions.map((t, i) => (
-                    <tr key={t.id || i} className="border-b border-surface-variant hover:bg-surface/50 transition-colors last:border-0">
-                      <td className="p-4">{t.date}</td>
-                      <td className="p-4">{t.customer_name || '—'}</td>
-                      <td className="p-4">{t.service_name}</td>
-                      <td className="p-4 text-right font-medium">₹{(t.amount || 0).toLocaleString('en-IN')}</td>
-                      <td className="p-4"><StatusBadge status={t.status} /></td>
+                  {transactions.map((tx, i) => (
+                    <tr key={tx.id || i} className="border-b border-surface-variant hover:bg-surface/50 transition-colors last:border-0">
+                      <td className="p-4">{tx.date}</td>
+                      <td className="p-4">{tx.customer_name || '—'}</td>
+                      <td className="p-4">{tx.service_name}</td>
+                      <td className="p-4 text-right font-medium">₹{(tx.amount || 0).toLocaleString('en-IN')}</td>
+                      <td className="p-4"><StatusBadge status={tx.status} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -226,7 +229,7 @@ export default function RevenueOverview() {
           ) : (
             <div className="p-stack-lg text-center">
               <span className="material-symbols-outlined text-on-surface-variant text-[40px] mb-2">receipt_long</span>
-              <p className="font-hanken text-body-md text-on-surface-variant">No transactions yet</p>
+              <p className="font-hanken text-body-md text-on-surface-variant">{t('adminRevenue.noTransactions')}</p>
             </div>
           )}
         </div>

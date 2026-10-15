@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { workersService } from '../../services/workersService';
 import { bookingsService } from '../../services/bookingsService';
 import { servicesService } from '../../services/servicesService';
+import UseCurrentLocationButton from '../../components/UseCurrentLocationButton';
 import DashboardLayout from '../../components/DashboardLayout';
 
 export default function BookingForm() {
+  const { t } = useTranslation();
   const { workerId } = useParams();
   const navigate = useNavigate();
   const [worker, setWorker] = useState(null);
@@ -19,8 +22,14 @@ export default function BookingForm() {
     scheduled_time: '',
     duration_hours: 1,
     address: '',
+    lat: null,
+    lng: null,
     notes: '',
   });
+
+  function handleUseLocation({ address, lat, lng }) {
+    setFormData((f) => ({ ...f, address: address || f.address, lat, lng }));
+  }
 
   useEffect(() => {
     loadData();
@@ -60,7 +69,19 @@ export default function BookingForm() {
   }
 
   const totalAmount = (worker?.hourly_rate || 0) * formData.duration_hours;
-  const selectedService = services.find((s) => String(s.id) === String(formData.service_id));
+
+  // Only the services THIS worker actually offers (not every platform service).
+  // Intersect the full platform catalog with the worker's own service ids so we
+  // still get rich details (description/icon) but limited to what they do.
+  const workerServiceIds = new Set((worker?.services || []).map((s) => String(s.id)));
+  const workerServices = workerServiceIds.size > 0
+    ? services.filter((s) => workerServiceIds.has(String(s.id)))
+    // Fallback: if the catalog join is empty (e.g. ids mismatch), use the
+    // worker's own service entries directly so the list is never wrongly full.
+    : (worker?.services || []);
+
+  const selectedService = workerServices.find((s) => String(s.id) === String(formData.service_id))
+    || services.find((s) => String(s.id) === String(formData.service_id));
 
   if (loading) {
     return (
@@ -104,7 +125,7 @@ export default function BookingForm() {
                 <label className="font-hanken text-label-md text-on-surface">Service</label>
                 <select name="service_id" value={formData.service_id} onChange={handleChange} className="input-field" required>
                   <option value="">Select a service</option>
-                  {services.map((s) => (
+                  {workerServices.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
@@ -112,23 +133,24 @@ export default function BookingForm() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
                 <div className="flex flex-col gap-stack-xs">
-                  <label className="font-hanken text-label-md text-on-surface">Date</label>
+                  <label className="font-hanken text-label-md text-on-surface">{t('booking.date')}</label>
                   <input type="date" name="scheduled_date" value={formData.scheduled_date} onChange={handleChange} className="input-field" required />
                 </div>
                 <div className="flex flex-col gap-stack-xs">
-                  <label className="font-hanken text-label-md text-on-surface">Time</label>
+                  <label className="font-hanken text-label-md text-on-surface">{t('booking.time')}</label>
                   <input type="time" name="scheduled_time" value={formData.scheduled_time} onChange={handleChange} className="input-field" required />
                 </div>
               </div>
 
               <div className="flex flex-col gap-stack-xs">
-                <label className="font-hanken text-label-md text-on-surface">Duration (hours)</label>
+                <label className="font-hanken text-label-md text-on-surface">{t('booking.duration')}</label>
                 <input type="number" name="duration_hours" value={formData.duration_hours} onChange={handleChange} min="1" max="8" className="input-field" required />
               </div>
 
               <div className="flex flex-col gap-stack-xs">
-                <label className="font-hanken text-label-md text-on-surface">Address</label>
-                <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Enter service address" className="input-field" required />
+                <label className="font-hanken text-label-md text-on-surface">{t('booking.address')}</label>
+                <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder={t('bookingForm.enterAddress')} className="input-field" required />
+                <UseCurrentLocationButton onLocation={handleUseLocation} />
               </div>
 
               <div className="flex flex-col gap-stack-xs">
@@ -137,14 +159,14 @@ export default function BookingForm() {
               </div>
 
               <button type="submit" disabled={submitting} className="btn-primary w-full mt-stack-sm">
-                {submitting ? 'Booking...' : `Confirm Booking · ₹${totalAmount}`}
+                {submitting ? t('bookingForm.confirming') : `${t('booking.confirmBooking')} · ₹${totalAmount}`}
               </button>
             </form>
           </div>
 
           {/* Summary Sidebar */}
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-5 shadow-level-1 h-fit sticky top-24">
-            <h3 className="font-manrope text-headline-sm text-on-surface mb-4">Booking Summary</h3>
+            <h3 className="font-manrope text-headline-sm text-on-surface mb-4">{t('booking.bookingSummary')}</h3>
             <div className="flex items-center gap-3 pb-4 border-b border-outline-variant">
               <div className="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center">
                 <span className="material-symbols-outlined text-primary">person</span>
@@ -160,7 +182,7 @@ export default function BookingForm() {
                 <span className="font-hanken text-body-sm text-on-surface">₹{worker?.hourly_rate || 0}/hr</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-hanken text-body-sm text-on-surface-variant">Duration</span>
+                <span className="font-hanken text-body-sm text-on-surface-variant">{t('booking.duration')}</span>
                 <span className="font-hanken text-body-sm text-on-surface">{formData.duration_hours} hr(s)</span>
               </div>
               <div className="flex justify-between pt-3 border-t border-outline-variant">
@@ -193,9 +215,9 @@ export default function BookingForm() {
             {/* Header + progress */}
             <div className="flex flex-col gap-stack-sm">
               <p className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider">Book your consultation</p>
-              <h1 className="font-manrope text-headline-lg text-primary">Booking Details</h1>
+              <h1 className="font-manrope text-headline-lg text-primary">{t('bookingForm.title')}</h1>
               <p className="font-hanken text-body-md text-on-surface-variant max-w-2xl mt-1">
-                Select your service, choose a date and time, and add any details for the professional.
+                {t('bookingForm.subtitle')}
               </p>
               <div className="w-full h-1 bg-surface-container-high rounded-full mt-4 overflow-hidden">
                 <div className="h-full bg-secondary transition-all duration-500 ease-in-out" style={{ width: formData.service_id && formData.scheduled_date ? '100%' : formData.service_id ? '60%' : '20%' }} />
@@ -214,11 +236,11 @@ export default function BookingForm() {
               <section className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg">
                 <h3 className="font-manrope text-headline-sm text-primary mb-stack-md flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant">cases</span>
-                  Select Service
+                  {t('booking.selectService')}
                 </h3>
-                {services.length > 0 ? (
+                {workerServices.length > 0 ? (
                   <div className="grid grid-cols-2 gap-stack-md">
-                    {services.map((s) => {
+                    {workerServices.map((s) => {
                       const active = String(formData.service_id) === String(s.id);
                       return (
                         <label key={s.id} className="cursor-pointer group relative h-full">
@@ -260,7 +282,7 @@ export default function BookingForm() {
                     })}
                   </div>
                 ) : (
-                  <p className="font-hanken text-body-sm text-on-surface-variant">No services available.</p>
+                  <p className="font-hanken text-body-sm text-on-surface-variant">This professional hasn't listed any services yet.</p>
                 )}
               </section>
 
@@ -268,19 +290,19 @@ export default function BookingForm() {
               <section className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg">
                 <h3 className="font-manrope text-headline-sm text-primary mb-stack-md flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant">calendar_month</span>
-                  Date &amp; Time
+                  {t('booking.dateTime')}
                 </h3>
                 <div className="grid grid-cols-3 gap-stack-md">
                   <div className="flex flex-col gap-stack-xs">
-                    <label className="font-hanken text-label-md text-on-surface-variant">Date</label>
+                    <label className="font-hanken text-label-md text-on-surface-variant">{t('booking.date')}</label>
                     <input type="date" name="scheduled_date" value={formData.scheduled_date} onChange={handleChange} className="input-field" required />
                   </div>
                   <div className="flex flex-col gap-stack-xs">
-                    <label className="font-hanken text-label-md text-on-surface-variant">Time</label>
+                    <label className="font-hanken text-label-md text-on-surface-variant">{t('booking.time')}</label>
                     <input type="time" name="scheduled_time" value={formData.scheduled_time} onChange={handleChange} className="input-field" required />
                   </div>
                   <div className="flex flex-col gap-stack-xs">
-                    <label className="font-hanken text-label-md text-on-surface-variant">Duration (hours)</label>
+                    <label className="font-hanken text-label-md text-on-surface-variant">{t('booking.duration')}</label>
                     <input type="number" name="duration_hours" value={formData.duration_hours} onChange={handleChange} min="1" max="8" className="input-field" required />
                   </div>
                 </div>
@@ -290,12 +312,13 @@ export default function BookingForm() {
               <section className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg">
                 <h3 className="font-manrope text-headline-sm text-primary mb-stack-md flex items-center gap-2">
                   <span className="material-symbols-outlined text-on-surface-variant">location_on</span>
-                  Location &amp; Notes
+                  {t('bookingForm.locationNotes')}
                 </h3>
                 <div className="flex flex-col gap-stack-md">
                   <div className="flex flex-col gap-stack-xs">
-                    <label className="font-hanken text-label-md text-on-surface-variant">Address</label>
-                    <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder="Enter service address" className="input-field" required />
+                    <label className="font-hanken text-label-md text-on-surface-variant">{t('booking.address')}</label>
+                    <input type="text" name="address" value={formData.address} onChange={handleChange} placeholder={t('bookingForm.enterAddress')} className="input-field" required />
+                    <UseCurrentLocationButton onLocation={handleUseLocation} />
                   </div>
                   <div className="flex flex-col gap-stack-xs">
                     <label className="font-hanken text-label-md text-on-surface-variant">Notes (optional)</label>
@@ -309,7 +332,7 @@ export default function BookingForm() {
           {/* Right: Order summary sidebar */}
           <div className="col-span-4">
             <div className="bg-surface-container-lowest border border-outline-slate rounded-xl p-stack-lg sticky top-[80px]">
-              <h2 className="font-manrope text-headline-sm text-primary mb-stack-md border-b border-outline-slate pb-stack-md">Booking Summary</h2>
+              <h2 className="font-manrope text-headline-sm text-primary mb-stack-md border-b border-outline-slate pb-stack-md">{t('booking.bookingSummary')}</h2>
 
               <div className="mb-stack-md">
                 <span className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider block mb-1">Professional</span>
@@ -325,12 +348,12 @@ export default function BookingForm() {
               </div>
 
               <div className="mb-stack-md">
-                <span className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider block mb-1">Service</span>
-                <p className="font-hanken text-body-md text-primary">{selectedService?.name || 'Not selected yet'}</p>
+                <span className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider block mb-1">{t('booking.service')}</span>
+                <p className="font-hanken text-body-md text-primary">{selectedService?.name || t('booking.notSelected')}</p>
               </div>
 
               <div className="mb-stack-md">
-                <span className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider block mb-1">Date &amp; Time</span>
+                <span className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider block mb-1">{t('booking.dateTime')}</span>
                 <p className="font-hanken text-body-md text-primary">
                   {formData.scheduled_date || '—'}{formData.scheduled_time && ` at ${formData.scheduled_time}`}
                 </p>
@@ -342,7 +365,7 @@ export default function BookingForm() {
                   <span className="font-hanken text-body-sm text-on-surface">₹{worker?.hourly_rate || 0}/hr</span>
                 </div>
                 <div className="flex justify-between mb-2">
-                  <span className="font-hanken text-body-sm text-on-surface-variant">Duration</span>
+                  <span className="font-hanken text-body-sm text-on-surface-variant">{t('booking.duration')}</span>
                   <span className="font-hanken text-body-sm text-on-surface">{formData.duration_hours} hr(s)</span>
                 </div>
               </div>
@@ -357,7 +380,7 @@ export default function BookingForm() {
                 disabled={submitting || !formData.service_id || !formData.scheduled_date || !formData.scheduled_time || !formData.address}
                 className="w-full mt-stack-lg h-12 bg-primary-container text-on-primary font-hanken text-label-md rounded-lg flex items-center justify-center gap-2 hover:bg-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Confirming...' : 'Confirm Booking'}
+                {submitting ? t('bookingForm.confirming') : t('booking.confirmBooking')}
                 <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
               </button>
               <p className="font-hanken text-body-sm text-on-surface-variant text-center mt-4">

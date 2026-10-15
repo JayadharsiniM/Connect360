@@ -36,6 +36,8 @@ def lambda_handler(event, context):
             return get_worker_availability(event)
         elif method == 'PUT' and resource == '/api/worker/availability':
             return set_worker_availability(event)
+        elif method == 'POST' and resource == '/api/worker/location':
+            return update_worker_location(event)
         elif method == 'GET' and resource == '/api/workers/recommended':
             return get_recommended_workers(event)
         elif method == 'GET' and resource == '/api/workers/{id}':
@@ -55,6 +57,47 @@ def _get_user_id_from_sub(cognito_sub):
     if items:
         return items[0].get('id')
     return None
+
+
+def _coerce_coord(v, lo, hi):
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if lo <= f <= hi else None
+
+
+def update_worker_location(event):
+    """
+    POST /api/worker/location
+    Body: { latitude, longitude, mode?: 'live'|'home' }
+
+    Stores the worker's coordinates on their WORKER_PROFILE so the Priority
+    matching engine can rank by real proximity. 'live' (default) sets a
+    freshness timestamp; 'home' sets the registered fallback location.
+    """
+    role = get_user_role(event)
+    if role != 'worker':
+        return forbidden('Only workers can update their location')
+
+    worker_id = _get_user_id_from_sub(get_user_sub(event))
+    if not worker_id:
+        return error('User not found')
+
+    body = get_body(event)
+    lat = _coerce_coord(body.get('latitude', body.get('lat')), -90.0, 90.0)
+    lng = _coerce_coord(body.get('longitude', body.get('lng')), -180.0, 180.0)
+    if lat is None or lng is None:
+        return error('Valid latitude and longitude are required')
+
+    mode = (body.get('mode') or 'live').strip().lower()
+    if mode == 'home':
+        updates = {'home_lat': lat, 'home_lng': lng}
+    else:
+        updates = {'live_lat': lat, 'live_lng': lng, 'live_location_at': now_iso()}
+
+    update_item(f'USER#{worker_id}', 'WORKER_PROFILE', updates)
+    return success({'message': 'Location updated', 'mode': mode})
 
 
 def get_worker_profile(event):

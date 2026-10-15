@@ -1,27 +1,29 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = {
   customer: [
-    { to: '/customer/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { to: '/customer/workers', icon: 'search', label: 'Search' },
-    { to: '/customer/bookings', icon: 'event_note', label: 'Bookings' },
-    { to: '/customer/profile', icon: 'person', label: 'Profile' },
+    { to: '/customer/dashboard', icon: 'dashboard', labelKey: 'nav.dashboard' },
+    { to: '/customer/workers', icon: 'search', labelKey: 'components.navSearch' },
+    { to: '/customer/bookings', icon: 'event_note', labelKey: 'nav.bookings' },
+    { to: '/customer/profile', icon: 'person', labelKey: 'nav.profile' },
   ],
   worker: [
-    { to: '/worker/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { to: '/worker/bookings', icon: 'event_note', label: 'Bookings' },
-    { to: '/worker/availability', icon: 'schedule', label: 'Schedule' },
-    { to: '/worker/profile', icon: 'person', label: 'Profile' },
+    { to: '/worker/dashboard', icon: 'dashboard', labelKey: 'nav.dashboard' },
+    { to: '/worker/bookings', icon: 'event_note', labelKey: 'nav.bookings' },
+    { to: '/worker/availability', icon: 'schedule', labelKey: 'components.navSchedule' },
+    { to: '/worker/profile', icon: 'person', labelKey: 'nav.profile' },
   ],
   admin: [
-    { to: '/admin/dashboard', icon: 'analytics', label: 'Dashboard' },
-    { to: '/admin/services', icon: 'category', label: 'Services' },
-    { to: '/admin/verifications', icon: 'fact_check', label: 'Verify' },
+    { to: '/admin/dashboard', icon: 'analytics', labelKey: 'nav.dashboard' },
+    { to: '/admin/services', icon: 'category', labelKey: 'nav.services' },
+    { to: '/admin/verifications', icon: 'fact_check', labelKey: 'components.navVerify' },
   ],
 };
 
 export default function BottomNav() {
+  const { t } = useTranslation();
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
 
@@ -49,7 +51,7 @@ export default function BottomNav() {
             >
               {item.icon}
             </span>
-            <span className="font-hanken text-label-sm">{item.label}</span>
+            <span className="font-hanken text-label-sm">{t(item.labelKey)}</span>
           </Link>
         );
       })}

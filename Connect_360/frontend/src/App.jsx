@@ -20,6 +20,7 @@ import BrowseWorkers from './pages/customer/BrowseWorkers';
 import WorkerDetail from './pages/customer/WorkerDetail';
 import BookingForm from './pages/customer/BookingForm';
 import MyBookings from './pages/customer/MyBookings';
+import BookingDetail from './pages/customer/BookingDetail';
 import CustomerProfile from './pages/customer/Profile';
 import BookingChoice from './pages/customer/BookingChoice';
 import PriorityBookingForm from './pages/customer/PriorityBookingForm';
@@ -30,6 +31,7 @@ import WorkerDashboard from './pages/worker/Dashboard';
 import WorkerProfile from './pages/worker/Profile';
 import WorkerAvailability from './pages/worker/Availability';
 import WorkerBookings from './pages/worker/Bookings';
+import WorkerEarnings from './pages/worker/Earnings';
 import WorkerVerification from './pages/worker/Verification';
 import WorkerPriorityRequests from './pages/worker/PriorityRequests';
 
@@ -40,6 +42,8 @@ import VerificationReview from './pages/admin/VerificationReview';
 import RevenueOverview from './pages/admin/RevenueOverview';
 import UserManagement from './pages/admin/UserManagement';
 import VerificationQueue from './pages/admin/VerificationQueue';
+import AdminOverdueBookings from './pages/admin/OverdueBookings';
+import AdminPayments from './pages/admin/Payments';
 
 export default function App() {
   const { loading, isAuthenticated, user } = useAuth();
@@ -80,6 +84,7 @@ export default function App() {
           <Route path="/customer/priority/new" element={<ProtectedRoute allowedRoles={['customer']}><PriorityBookingForm /></ProtectedRoute>} />
           <Route path="/customer/priority" element={<ProtectedRoute allowedRoles={['customer']}><PriorityBookings /></ProtectedRoute>} />
           <Route path="/customer/bookings" element={<ProtectedRoute allowedRoles={['customer']}><MyBookings /></ProtectedRoute>} />
+          <Route path="/customer/bookings/:id" element={<ProtectedRoute allowedRoles={['customer']}><BookingDetail /></ProtectedRoute>} />
           <Route path="/customer/profile" element={<ProtectedRoute allowedRoles={['customer']}><CustomerProfile /></ProtectedRoute>} />
 
           {/* Worker routes */}
@@ -87,6 +92,7 @@ export default function App() {
           <Route path="/worker/profile" element={<ProtectedRoute allowedRoles={['worker']}><WorkerProfile /></ProtectedRoute>} />
           <Route path="/worker/availability" element={<ProtectedRoute allowedRoles={['worker']}><WorkerAvailability /></ProtectedRoute>} />
           <Route path="/worker/bookings" element={<ProtectedRoute allowedRoles={['worker']}><WorkerBookings /></ProtectedRoute>} />
+          <Route path="/worker/earnings" element={<ProtectedRoute allowedRoles={['worker']}><WorkerEarnings /></ProtectedRoute>} />
           <Route path="/worker/priority-requests" element={<ProtectedRoute allowedRoles={['worker']}><WorkerPriorityRequests /></ProtectedRoute>} />
           <Route path="/worker/verification" element={<ProtectedRoute allowedRoles={['worker']}><WorkerVerification /></ProtectedRoute>} />
 
@@ -95,6 +101,8 @@ export default function App() {
           <Route path="/admin/revenue" element={<ProtectedRoute allowedRoles={['admin']}><RevenueOverview /></ProtectedRoute>} />
           <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><UserManagement /></ProtectedRoute>} />
           <Route path="/admin/services" element={<ProtectedRoute allowedRoles={['admin']}><ManageServices /></ProtectedRoute>} />
+          <Route path="/admin/overdue" element={<ProtectedRoute allowedRoles={['admin']}><AdminOverdueBookings /></ProtectedRoute>} />
+          <Route path="/admin/payments" element={<ProtectedRoute allowedRoles={['admin']}><AdminPayments /></ProtectedRoute>} />
           <Route path="/admin/verification-queue" element={<ProtectedRoute allowedRoles={['admin']}><VerificationQueue /></ProtectedRoute>} />
           <Route path="/admin/verifications" element={<ProtectedRoute allowedRoles={['admin']}><VerificationReview /></ProtectedRoute>} />
 

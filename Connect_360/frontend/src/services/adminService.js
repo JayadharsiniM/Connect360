@@ -13,6 +13,13 @@ export const adminService = isMock ? mockApi.admin : {
   // Revenue analytics
   getRevenue: () => api.get('/admin/revenue'),
 
+  // Overdue bookings (Enhancement): scheduled time passed but not completed.
+  listOverdueBookings: () => api.get('/admin/overdue-bookings'),
+
+  // Payments (Razorpay): admin payment management view + analytics.
+  listPayments: (status) => api.get('/admin/payments', { params: { status } }),
+  getPaymentAnalytics: () => api.get('/admin/payments/analytics'),
+
   // Verification queue (reuses the verification lambda's admin routes)
   listVerifications: (status = 'pending') =>
     api.get('/admin/verifications', { params: { status } }),

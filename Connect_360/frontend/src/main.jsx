@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { configureAmplify } from './config/amplify';
+import './i18n';
 import './index.css';
 
 const isMock = import.meta.env.VITE_MOCK_MODE === 'true';

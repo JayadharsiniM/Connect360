@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
 import { servicesService } from '../../services/servicesService';
 import { priorityService } from '../../services/priorityService';
@@ -20,6 +21,7 @@ import LiveTrackingMap from '../../components/LiveTrackingMap';
  * nearby workers, prices, ETAs, or promo logic.
  */
 export default function PriorityBookingForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -59,7 +61,7 @@ export default function PriorityBookingForm() {
       })
       .catch((err) => {
         console.error('Failed to load services:', err);
-        setError('Could not load services. Please try again.');
+        setError(t('priorityForm.couldNotLoadServices'));
       })
       .finally(() => setLoading(false));
   }, []);
@@ -84,15 +86,15 @@ export default function PriorityBookingForm() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => runGeocode(address), 700);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => runGeocode(address), 700);
+    return () => clearTimeout(timer);
   }, [address, runGeocode]);
 
   // Capture the customer's REAL current location and reverse-geocode to an address.
   async function handleUseMyLocation() {
     setError('');
     if (!('geolocation' in navigator)) {
-      setError('Location is not supported on this device.');
+      setError(t('priorityForm.locationNotSupported'));
       return;
     }
     setLocating(true);
@@ -104,7 +106,7 @@ export default function PriorityBookingForm() {
           setAddress(result.address);
           setCustomerLocation({ lat: latitude, lng: longitude, address: result.address });
         } else {
-          setCustomerLocation({ lat: latitude, lng: longitude, address: 'Current location' });
+          setCustomerLocation({ lat: latitude, lng: longitude, address: t('priorityForm.currentLocation') });
         }
         setLocating(false);
       },
@@ -112,8 +114,8 @@ export default function PriorityBookingForm() {
         console.warn('Geolocation error:', err.message);
         setError(
           err.code === err.PERMISSION_DENIED
-            ? 'Location permission denied. Enter your address manually.'
-            : 'Could not get your location. Enter your address manually.'
+            ? t('priorityForm.permissionDenied')
+            : t('priorityForm.couldNotLocate')
         );
         setLocating(false);
       },
@@ -125,15 +127,15 @@ export default function PriorityBookingForm() {
     setError('');
 
     if (!selectedServiceId) {
-      setError('Please select a service.');
+      setError(t('priorityForm.selectService'));
       return;
     }
     if (!address.trim()) {
-      setError('Please provide your service address.');
+      setError(t('priorityForm.provideAddress'));
       return;
     }
     if (scheduleMode === 'scheduled' && (!scheduledDate || !scheduledTime)) {
-      setError('Please pick a date and time, or choose ASAP.');
+      setError(t('priorityForm.pickDateTime'));
       return;
     }
 
@@ -157,6 +159,12 @@ export default function PriorityBookingForm() {
         special_requirements: notes.trim(),
         notes: notes.trim(),
       };
+      // Send the geocoded/GPS coordinates so matching ranks by real proximity
+      // to the worker's live (or registered) location.
+      if (customerLocation?.lat != null && customerLocation?.lng != null) {
+        payload.lat = customerLocation.lat;
+        payload.lng = customerLocation.lng;
+      }
       // Only include a budget cap if the customer actually set one.
       const bMax = parseFloat(budgetMax);
       if (!isNaN(bMax) && bMax > 0) {
@@ -167,7 +175,7 @@ export default function PriorityBookingForm() {
       const bookingId = res.data.booking_id;
       navigate('/customer/priority', { state: { focusId: bookingId } });
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit priority request. Please try again.');
+      setError(err.response?.data?.error || t('priorityForm.submitFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -188,12 +196,12 @@ export default function PriorityBookingForm() {
           </Link>
           <div className="h-5 w-px bg-outline-slate hidden sm:block"></div>
           <span className="hidden sm:inline text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-md text-xs">
-            Priority Request
+            {t('priorityForm.priorityRequest')}
           </span>
         </div>
         <Link to="/customer/priority" className="text-xs font-bold text-slate-600 hover:text-blue-600 flex items-center gap-1.5">
           <span className="material-symbols-outlined text-[18px]">list_alt</span>
-          My Priority Bookings
+          {t('priorityForm.myPriorityBookings')}
         </Link>
       </header>
 
@@ -202,9 +210,9 @@ export default function PriorityBookingForm() {
         <aside className="w-full md:w-[460px] bg-white border-r border-outline-slate flex flex-col justify-between shrink-0 z-20 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 custom-scrollbar">
             <div className="pt-1">
-              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">Create a priority request</h1>
+              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">{t('priorityForm.createTitle')}</h1>
               <p className="text-xs text-on-surface-variant mt-0.5">
-                Tell us what you need. We'll match you with the best available verified worker.
+                {t('priorityForm.createSubtitle')}
               </p>
             </div>
 
@@ -217,7 +225,7 @@ export default function PriorityBookingForm() {
 
             {/* Service */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Service needed</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('priorityForm.serviceNeeded')}</label>
               {loading ? (
                 <div className="h-10 bg-slate-100 rounded-xl animate-pulse" />
               ) : (
@@ -241,7 +249,7 @@ export default function PriorityBookingForm() {
             {/* Address */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Service address</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('priorityForm.serviceAddress')}</label>
                 <button
                   type="button"
                   onClick={handleUseMyLocation}
@@ -249,13 +257,13 @@ export default function PriorityBookingForm() {
                   className="text-[11px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-[14px]">my_location</span>
-                  {locating ? 'Locating…' : 'Use my location'}
+                  {locating ? t('priorityForm.locating') : t('priorityForm.useMyLocation')}
                 </button>
               </div>
               <textarea
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Enter the full address where you need the service"
+                placeholder={t('priorityForm.addressPlaceholder')}
                 rows={2}
                 className="w-full text-sm text-slate-900 bg-white border border-outline-slate rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600 resize-none"
               />
@@ -263,34 +271,34 @@ export default function PriorityBookingForm() {
                 {geocoding ? (
                   <>
                     <span className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-                    <span>Locating address on map…</span>
+                    <span>{t('priorityForm.locatingMap')}</span>
                   </>
                 ) : customerLocation ? (
                   <>
                     <span className="material-symbols-outlined text-[14px] text-emerald-600">check_circle</span>
-                    <span className="text-emerald-700 font-semibold">Location confirmed on map</span>
+                    <span className="text-emerald-700 font-semibold">{t('priorityForm.locationConfirmed')}</span>
                   </>
                 ) : (
-                  <span>Enter an address to preview it on the map</span>
+                  <span>{t('priorityForm.enterToPreview')}</span>
                 )}
               </div>
             </div>
 
             {/* City (optional, aids matching) */}
             <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">City (optional)</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('priorityForm.cityOptional')}</label>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="e.g. Chennai"
+                placeholder={t('priorityForm.cityPlaceholder')}
                 className="w-full text-sm text-slate-900 bg-white border border-outline-slate rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600"
               />
             </div>
 
             {/* When */}
             <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">When</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t('priorityForm.when')}</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -301,7 +309,7 @@ export default function PriorityBookingForm() {
                       : 'border-outline-slate bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
-                  As soon as possible
+                  {t('priorityForm.asap')}
                 </button>
                 <button
                   type="button"
@@ -312,7 +320,7 @@ export default function PriorityBookingForm() {
                       : 'border-outline-slate bg-white text-slate-600 hover:border-slate-300'
                   }`}
                 >
-                  Schedule
+                  {t('priorityForm.schedule')}
                 </button>
               </div>
               {scheduleMode === 'scheduled' && (
@@ -337,12 +345,12 @@ export default function PriorityBookingForm() {
             {/* Notes */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Describe the issue (optional)
+                {t('priorityForm.describeIssue')}
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Circuit breaker keeps tripping in the kitchen"
+                placeholder={t('priorityForm.notesPlaceholder')}
                 rows={2}
                 className="w-full text-sm text-slate-900 bg-white border border-outline-slate rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600 resize-none"
               />
@@ -351,14 +359,14 @@ export default function PriorityBookingForm() {
             {/* Budget cap (optional) */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Max budget (optional)
+                {t('priorityForm.maxBudget')}
               </label>
               <input
                 type="number"
                 min="0"
                 value={budgetMax}
                 onChange={(e) => setBudgetMax(e.target.value)}
-                placeholder="Leave blank for no cap"
+                placeholder={t('priorityForm.budgetPlaceholder')}
                 className="w-full text-sm text-slate-900 bg-white border border-outline-slate rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-600"
               />
             </div>
@@ -374,10 +382,10 @@ export default function PriorityBookingForm() {
               <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                 bolt
               </span>
-              <span>{submitting ? 'Finding your worker…' : 'Submit priority request'}</span>
+              <span>{submitting ? t('priorityForm.findingWorker') : t('priorityForm.submitRequest')}</span>
             </button>
             <p className="text-[11px] text-slate-400 text-center mt-2">
-              We'll match you with the best available verified worker.
+              {t('priorityForm.matchNote')}
             </p>
           </div>
         </aside>
@@ -388,13 +396,13 @@ export default function PriorityBookingForm() {
             <LiveTrackingMap
               customerLocation={customerLocation}
               workerLocation={null}
-              customerLabel={address || 'Your service location'}
+              customerLabel={address || t('priorityForm.yourServiceLocation')}
               className="w-full h-full"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 gap-3">
               <span className="material-symbols-outlined text-[48px]">location_searching</span>
-              <span className="text-sm font-bold">Enter your address to see it on the map</span>
+              <span className="text-sm font-bold">{t('priorityForm.enterToSeeMap')}</span>
               <button
                 type="button"
                 onClick={handleUseMyLocation}
@@ -402,7 +410,7 @@ export default function PriorityBookingForm() {
                 className="mt-1 text-xs font-bold text-blue-600 border border-blue-200 bg-blue-50 rounded-lg px-3 py-1.5 flex items-center gap-1.5 disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[16px]">my_location</span>
-                {locating ? 'Locating…' : 'Use my current location'}
+                {locating ? t('priorityForm.locating') : t('priorityForm.useCurrentLocation')}
               </button>
             </div>
           )}

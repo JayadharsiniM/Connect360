@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/DashboardLayout';
 
@@ -7,16 +8,17 @@ import DashboardLayout from '../../components/DashboardLayout';
  *   Priority: "Let us find the best worker" -> new automatic matching flow
  */
 export default function BookingChoice() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
     <DashboardLayout>
       <div className="pt-6 lg:pt-0 px-margin-mobile md:px-margin-desktop lg:px-0 max-w-container mx-auto flex flex-col gap-stack-lg pb-24 lg:pb-0">
         <div className="flex flex-col gap-stack-sm">
-          <p className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider">Book a service</p>
-          <h1 className="font-manrope text-headline-lg-mobile lg:text-headline-lg text-primary">How would you like to book?</h1>
+          <p className="font-hanken text-label-sm text-on-surface-variant uppercase tracking-wider">{t('bookingChoice.eyebrow')}</p>
+          <h1 className="font-manrope text-headline-lg-mobile lg:text-headline-lg text-primary">{t('bookingChoice.title')}</h1>
           <p className="font-hanken text-body-md text-on-surface-variant max-w-2xl">
-            Pick a professional yourself, or let Connect360 automatically match you with the best available worker.
+            {t('bookingChoice.subtitle')}
           </p>
         </div>
 
@@ -31,13 +33,13 @@ export default function BookingChoice() {
                 <span className="material-symbols-outlined text-[28px]">person_search</span>
               </div>
               <div className="flex-1">
-                <h2 className="font-manrope text-headline-sm text-primary mb-2">Choose your worker</h2>
+                <h2 className="font-manrope text-headline-sm text-primary mb-2">{t('bookingChoice.chooseWorker')}</h2>
                 <p className="font-hanken text-body-md text-on-surface-variant">
-                  Browse available workers and select the worker and time slot yourself.
+                  {t('bookingChoice.chooseWorkerDesc')}
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 font-hanken text-label-md text-secondary mt-2">
-                Browse workers
+                {t('bookingChoice.browseWorkers')}
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </span>
             </div>
@@ -56,17 +58,17 @@ export default function BookingChoice() {
                 </div>
                 <span className="badge badge-priority">
                   <span className="material-symbols-outlined text-[14px] mr-1" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-                  Priority
+                  {t('bookingChoice.priority')}
                 </span>
               </div>
               <div className="flex-1">
-                <h2 className="font-manrope text-headline-sm text-primary mb-2">Let us find the best worker</h2>
+                <h2 className="font-manrope text-headline-sm text-primary mb-2">{t('bookingChoice.findBest')}</h2>
                 <p className="font-hanken text-body-md text-on-surface-variant">
-                  Tell us what you need and we'll automatically match you with the most suitable available worker.
+                  {t('bookingChoice.findBestDesc')}
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 font-hanken text-label-md text-secondary mt-2">
-                Start priority request
+                {t('bookingChoice.startPriority')}
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
               </span>
             </div>
@@ -74,7 +76,7 @@ export default function BookingChoice() {
         </div>
 
         <Link to="/customer/dashboard" className="font-hanken text-body-sm text-on-surface-variant hover:text-secondary self-start">
-          ← Back to dashboard
+          ← {t('bookingChoice.backToDashboard')}
         </Link>
       </div>
     </DashboardLayout>

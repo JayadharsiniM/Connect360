@@ -41,6 +41,8 @@ def lambda_handler(event, context):
             return update_user(event)
         elif method == 'GET' and '/admin/revenue' in resource:
             return get_revenue(event)
+        elif method == 'GET' and '/admin/overdue-bookings' in resource:
+            return get_overdue_bookings(event)
         elif method == 'GET' and '/customer/profile' in resource:
             return get_customer_profile(event)
         elif method == 'PUT' and '/customer/profile' in resource:
@@ -78,6 +80,15 @@ def get_dashboard(event):
     # Revenue from completed bookings
     completed_bookings = query_items('STATUS#completed', index_name='GSI1')
     total_revenue = sum(float(b.get('total_amount', 0)) for b in completed_bookings)
+
+    # Overdue bookings (scheduled time passed but not completed). The bookings
+    # Lambda flags these (overdue_flag=True) during its sweep; admins can see
+    # the count here and the full list via /api/admin/overdue-bookings.
+    overdue_bookings = []
+    for status in ('pending', 'accepted', 'in_progress'):
+        for b in query_items(f'STATUS#{status}', index_name='GSI1'):
+            if b.get('overdue_flag'):
+                overdue_bookings.append(b)
 
     # Pending verifications
     pending_verifications = query_items('VERIFICATION#pending', index_name='GSI1')
@@ -128,10 +139,43 @@ def get_dashboard(event):
             },
             'pending_verifications': len(pending_verifications),
             'total_services': len(active_services),
+            'overdue_bookings': len(overdue_bookings),
         },
         'recent_bookings': recent_bookings,
         'top_workers': top_workers,
     })
+
+
+def get_overdue_bookings(event):
+    """
+    GET /api/admin/overdue-bookings
+    Lists bookings whose scheduled time has passed but which were never marked
+    completed (overdue_flag=True), so an admin can identify unresolved jobs.
+    """
+    role = get_user_role(event)
+    if role != 'admin':
+        return forbidden('Only admins can access overdue bookings')
+
+    overdue = []
+    for status in ('pending', 'accepted', 'in_progress'):
+        for b in query_all(f'STATUS#{status}', index_name='GSI1'):
+            if not b.get('overdue_flag'):
+                continue
+            overdue.append(decimal_to_float({
+                'id': b.get('id'),
+                'booking_type': b.get('booking_type', 'manual'),
+                'service_name': b.get('service_name'),
+                'customer_name': b.get('customer_name'),
+                'worker_name': b.get('worker_name'),
+                'scheduled_date': b.get('scheduled_date'),
+                'scheduled_time': b.get('scheduled_time'),
+                'status': b.get('status'),
+                'total_amount': b.get('total_amount'),
+                'overdue_since': b.get('overdue_since', ''),
+            }))
+
+    overdue.sort(key=lambda x: x.get('scheduled_date') or '')
+    return success({'overdue_bookings': overdue, 'count': len(overdue)})
 
 
 def get_customer_profile(event):

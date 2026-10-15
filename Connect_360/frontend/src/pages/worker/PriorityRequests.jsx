@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { priorityService } from '../../services/priorityService';
 import { bookingsService } from '../../services/bookingsService';
 import { geocodeAddress } from '../../services/routingService';
 import { useAuth } from '../../context/AuthContext';
 import CallButton from '../../components/CallButton';
+import VerifyArrivalOtp from '../../components/VerifyArrivalOtp';
 import LiveTrackingMap from '../../components/LiveTrackingMap';
 
 // Format seconds as M:SS for the real offer-expiry countdown.
@@ -17,6 +19,7 @@ function formatCountdown(secs) {
 
 export default function WorkerPriorityRequests() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [requests, setRequests] = useState([]);
   const [activeJob, setActiveJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -134,10 +137,10 @@ export default function WorkerPriorityRequests() {
     setActionId(id);
     try {
       await priorityService.accept(id);
-      setFlash('Priority request accepted! Routing and GPS telemetry active.');
+      setFlash(t('workerPriority.acceptedFlash'));
       await load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Could not accept this request');
+      alert(err.response?.data?.error || t('workerPriority.couldNotAccept'));
     } finally {
       setActionId(null);
     }
@@ -147,10 +150,10 @@ export default function WorkerPriorityRequests() {
     setActionId(id);
     try {
       await priorityService.reject(id);
-      setFlash('Request declined. Dispatched to next available technician.');
+      setFlash(t('workerPriority.declinedFlash'));
       await load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Could not decline this request');
+      alert(err.response?.data?.error || t('workerPriority.couldNotDecline'));
     } finally {
       setActionId(null);
     }
@@ -162,10 +165,10 @@ export default function WorkerPriorityRequests() {
     setActionId(bookingId);
     try {
       await bookingsService.updateBookingStatus(bookingId, newStatus);
-      setFlash(`Status updated to ${newStatus.replace('_', ' ')}.`);
+      setFlash(t('workerPriority.statusUpdatedFlash', { status: t('status.' + newStatus) }));
       await load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to update status');
+      alert(err.response?.data?.error || t('workerPriority.failedUpdate'));
     } finally {
       setActionId(null);
     }
@@ -188,8 +191,8 @@ export default function WorkerPriorityRequests() {
       setOfferSecondsLeft(Math.max(0, Math.round(ms / 1000)));
     };
     compute();
-    const t = setInterval(compute, 1000);
-    return () => clearInterval(t);
+    const timer = setInterval(compute, 1000);
+    return () => clearInterval(timer);
   }, [activeOffer?.offer_expires_at, activeOffer?.booking_id]);
 
   return (
@@ -209,7 +212,7 @@ export default function WorkerPriorityRequests() {
                   Connect<span className="text-blue-600">360</span>
                 </span>
                 <span className="bg-blue-50 text-blue-700 text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md border border-blue-200 tracking-wider">
-                  Partner Radar
+                  {t('workerPriority.partnerRadar')}
                 </span>
               </div>
             </div>
@@ -227,14 +230,14 @@ export default function WorkerPriorityRequests() {
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
             </span>
             <span className="text-xs font-bold tracking-wide uppercase">
-              {isOnline ? 'ONLINE • Radar Streaming' : 'OFFLINE • Radar Paused'}
+              {isOnline ? t('workerPriority.onlineStreaming') : t('workerPriority.offlinePaused')}
             </span>
             <button
               onClick={() => setIsOnline(!isOnline)}
               className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition ml-1 underline cursor-pointer"
               type="button"
             >
-              {isOnline ? 'Go Offline' : 'Go Online'}
+              {isOnline ? t('workerPriority.goOffline') : t('workerPriority.goOnline')}
             </button>
           </div>
         </div>
@@ -244,12 +247,12 @@ export default function WorkerPriorityRequests() {
           <span className={`w-2 h-2 rounded-full animate-pulse ${gpsMode === 'device' ? 'bg-emerald-500' : gpsMode === 'denied' ? 'bg-red-500' : 'bg-amber-500'}`}></span>
           <span className="font-extrabold text-slate-800">
             {gpsMode === 'device'
-              ? `Live Device GPS (±${gpsAccuracy || 10}m)`
+              ? t('workerPriority.liveDeviceGps', { accuracy: gpsAccuracy || 10 })
               : gpsMode === 'denied'
-              ? 'Location Permission Denied'
+              ? t('workerPriority.permissionDenied')
               : gpsMode === 'unsupported'
-              ? 'GPS Not Supported'
-              : 'Acquiring GPS Signal...'}
+              ? t('workerPriority.gpsNotSupported')
+              : t('workerPriority.acquiringGps')}
           </span>
           {workerLocation && (
             <span className="text-[10px] text-slate-500 font-mono">
@@ -262,7 +265,7 @@ export default function WorkerPriorityRequests() {
         <div className="flex items-center gap-3">
           <Link to="/worker/bookings" className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 flex items-center gap-1.5 shadow-sm transition">
             <span className="material-symbols-outlined text-[16px] text-blue-600">calendar_month</span>
-            <span>All Bookings</span>
+            <span>{t('workerPriority.allBookings')}</span>
           </Link>
           <div className="h-6 w-px bg-slate-200"></div>
           <Link to="/worker/profile" className="flex items-center gap-2 pl-1">
@@ -279,8 +282,8 @@ export default function WorkerPriorityRequests() {
           <LiveTrackingMap
             workerLocation={workerLocation}
             customerLocation={customerLocation}
-            workerName={user?.fullName || 'You (Technician)'}
-            customerLabel={activeJob?.address || activeOffer?.address || 'Customer Location'}
+            workerName={user?.fullName || t('workerPriority.youTechnician')}
+            customerLabel={activeJob?.address || activeOffer?.address || t('workerPriority.customerLocation')}
             isWorkerPerspective={true}
             onRouteCalculated={(metrics) => setRouteMetrics(metrics)}
             className="w-full h-full"
@@ -289,7 +292,7 @@ export default function WorkerPriorityRequests() {
           <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 gap-3">
             <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
             <span className="text-xs font-bold">
-              {activeJob || activeOffer ? 'Resolving customer location...' : 'Waiting for a priority request...'}
+              {activeJob || activeOffer ? t('workerPriority.resolvingCustomer') : t('workerPriority.waitingRequest')}
             </span>
           </div>
         )}
@@ -314,11 +317,11 @@ export default function WorkerPriorityRequests() {
                 <div className="flex items-center gap-2">
                   <span className="animate-pulse text-amber-300">⚡</span>
                   <span className="text-xs font-extrabold uppercase tracking-wider">
-                    {activeJob.status === 'accepted' ? 'ACTIVE PRIORITY TRIP • EN ROUTE' : 'IN PROGRESS • WORK UNDERWAY'}
+                    {activeJob.status === 'accepted' ? t('workerPriority.activeTripEnRoute') : t('workerPriority.inProgressUnderway')}
                   </span>
                 </div>
                 <span className="text-[10px] bg-blue-800 text-blue-100 font-bold px-2 py-0.5 rounded-full uppercase">
-                  {activeJob.status}
+                  {t('status.' + activeJob.status)}
                 </span>
               </div>
 
@@ -327,7 +330,7 @@ export default function WorkerPriorityRequests() {
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
-                      Guaranteed Total Payout
+                      {t('workerPriority.guaranteedPayout')}
                     </span>
                     <div className="text-2xl font-black text-slate-900 tracking-tight">
                       ${activeJob.total_amount || 0}.00
@@ -335,10 +338,10 @@ export default function WorkerPriorityRequests() {
                   </div>
                   <div className="text-right">
                     <div className="text-base font-extrabold text-blue-600">
-                      {routeMetrics?.durationMinutes != null ? `~${routeMetrics.durationMinutes} min drive` : 'Calculating…'}
+                      {routeMetrics?.durationMinutes != null ? t('workerPriority.minDrive', { min: routeMetrics.durationMinutes }) : t('workerPriority.calculating')}
                     </div>
                     <span className="text-[10px] text-slate-500 font-semibold">
-                      {routeMetrics?.distanceKm != null ? `${routeMetrics.distanceKm} km via actual roads` : 'Awaiting GPS'}
+                      {routeMetrics?.distanceKm != null ? t('workerPriority.kmViaRoads', { km: routeMetrics.distanceKm }) : t('workerPriority.awaitingGps')}
                     </span>
                   </div>
                 </div>
@@ -346,31 +349,24 @@ export default function WorkerPriorityRequests() {
                 {/* Service Details & Address */}
                 <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-slate-900 text-xs">{activeJob.service_name || 'Priority Service'}</span>
+                    <span className="font-extrabold text-slate-900 text-xs">{activeJob.service_name || t('workerPriority.priorityServiceFallback')}</span>
                     <span className="text-[10px] font-mono text-slate-400">#{String(activeJobId).slice(-6)}</span>
                   </div>
                   <div className="flex items-start gap-2 text-xs text-slate-700">
                     <span className="material-symbols-outlined text-[16px] text-blue-600 shrink-0">location_on</span>
-                    <span className="font-semibold">{activeJob.address || 'Customer Residence'}</span>
+                    <span className="font-semibold">{activeJob.address || t('workerPriority.customerResidence')}</span>
                   </div>
                 </div>
 
                 {/* Call Customer */}
                 <div className="flex items-center gap-2 pt-1">
-                  <CallButton bookingId={activeJobId} status={activeJob.status} label="Call Customer" className="flex-1" />
+                  <CallButton bookingId={activeJobId} status={activeJob.status} label={t('workerPriority.callCustomer')} className="flex-1" />
                 </div>
 
                 {/* Action Buttons */}
                 <div className="pt-1">
                   {activeJob.status === 'accepted' && (
-                    <button
-                      onClick={() => handleStatusUpdate('in_progress')}
-                      disabled={actionId === activeJobId}
-                      className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">play_arrow</span>
-                      <span>{actionId === activeJobId ? 'Updating...' : 'I Have Arrived • Start Work'}</span>
-                    </button>
+                    <VerifyArrivalOtp booking={activeJob} onVerified={load} />
                   )}
                   {activeJob.status === 'in_progress' && (
                     <button
@@ -379,7 +375,7 @@ export default function WorkerPriorityRequests() {
                       className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-sm rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">task_alt</span>
-                      <span>{actionId === activeJobId ? 'Completing...' : 'Mark Job Complete & Signoff'}</span>
+                      <span>{actionId === activeJobId ? t('workerPriority.completing') : t('workerPriority.markCompleteSignoff')}</span>
                     </button>
                   )}
                 </div>
@@ -394,7 +390,7 @@ export default function WorkerPriorityRequests() {
                 <div className="flex items-center gap-2">
                   <span className="text-base animate-bounce">⚡</span>
                   <span className="text-xs font-extrabold tracking-wider uppercase">
-                    PRIORITY DISPATCH • HIGH URGENCY
+                    {t('workerPriority.priorityDispatchUrgency')}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 bg-slate-900 text-amber-300 px-2.5 py-0.5 rounded-full font-mono text-xs font-black shadow-sm">
@@ -406,22 +402,22 @@ export default function WorkerPriorityRequests() {
                 <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
                   <div>
                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block mb-0.5">
-                      Guaranteed Total Payout
+                      {t('workerPriority.guaranteedPayout')}
                     </span>
                     <div className="text-3xl font-black text-slate-900 tracking-tight flex items-baseline gap-1.5">
                       <span className="text-emerald-600 font-extrabold">
                         {activeOffer.estimated_earnings ? `$${activeOffer.estimated_earnings}.00` : '—'}
                       </span>
-                      <span className="text-xs font-semibold text-slate-400">est.</span>
+                      <span className="text-xs font-semibold text-slate-400">{t('workerPriority.est')}</span>
                     </div>
                   </div>
                   <div className="text-right space-y-1">
                     {activeOffer.match_score ? (
                       <span className="inline-block px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-extrabold">
-                        {activeOffer.match_score}% Match
+                        {t('workerPriority.matchPercent', { score: activeOffer.match_score })}
                       </span>
                     ) : null}
-                    <span className="block text-[10px] text-slate-500">Priority dispatch</span>
+                    <span className="block text-[10px] text-slate-500">{t('workerPriority.priorityDispatch')}</span>
                   </div>
                 </div>
 
@@ -429,14 +425,14 @@ export default function WorkerPriorityRequests() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-extrabold uppercase tracking-wide">
-                        {activeOffer.service_name || 'Emergency Repair'}
+                        {activeOffer.service_name || t('workerPriority.emergencyRepair')}
                       </span>
                       <span className="text-slate-400 text-xs font-mono font-semibold">
                         #{String(activeOffer.booking_id).slice(-6)}
                       </span>
                     </div>
                     <h3 className="text-base font-extrabold text-slate-900 leading-snug">
-                      {activeOffer.service_name || 'Priority service request'}
+                      {activeOffer.service_name || t('workerPriority.priorityServiceRequest')}
                     </h3>
                   </div>
 
@@ -448,14 +444,14 @@ export default function WorkerPriorityRequests() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-extrabold text-slate-900">
-                            {activeOffer.area || 'Nearby area'}
+                            {activeOffer.area || t('workerPriority.nearbyArea')}
                           </span>
                           <span className="text-blue-600 font-extrabold">
-                            {routeMetrics?.durationMinutes ? `~${routeMetrics.durationMinutes} min drive` : 'Near you'}
+                            {routeMetrics?.durationMinutes ? t('workerPriority.estDrive', { min: routeMetrics.durationMinutes }) : t('workerPriority.nearYou')}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          Client: {activeOffer.customer_name || 'Verified Client'}
+                          {t('workerPriority.clientLabel', { name: activeOffer.customer_name || t('workerPriority.verifiedClient') })}
                         </p>
                       </div>
                     </div>
@@ -478,7 +474,7 @@ export default function WorkerPriorityRequests() {
                     type="button"
                   >
                     <span className="relative z-10 flex items-center gap-2 tracking-wide uppercase font-black">
-                      <span>{actionId === activeOffer.booking_id ? 'CONFIRMING...' : 'TAP TO ACCEPT'}</span>
+                      <span>{actionId === activeOffer.booking_id ? t('workerPriority.confirming') : t('workerPriority.tapToAccept')}</span>
                       {offerSecondsLeft != null && (
                         <span className="text-xs bg-slate-950 text-amber-300 px-2.5 py-0.5 rounded-full font-mono font-black">
                           {formatCountdown(offerSecondsLeft)}
@@ -494,12 +490,12 @@ export default function WorkerPriorityRequests() {
                       className="text-slate-500 hover:text-slate-800 font-semibold transition py-1 underline-offset-2 hover:underline cursor-pointer"
                       type="button"
                     >
-                      Decline Request
+                      {t('workerPriority.declineRequest')}
                     </button>
                     <span className="text-[11px] text-slate-400 font-medium">
                       {offerSecondsLeft != null
-                        ? `Offer expires in ${offerSecondsLeft}s, then reassigned`
-                        : 'Respond to keep this job'}
+                        ? t('workerPriority.offerExpiresIn', { secs: offerSecondsLeft })
+                        : t('workerPriority.respondToKeep')}
                     </span>
                   </div>
                 </div>
@@ -513,12 +509,12 @@ export default function WorkerPriorityRequests() {
               <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-2xl">
                 📡
               </div>
-              <h3 className="font-extrabold text-slate-900 text-base">Radar Active • Waiting for Requests</h3>
+              <h3 className="font-extrabold text-slate-900 text-base">{t('workerPriority.radarActive')}</h3>
               <p className="text-xs text-slate-500">
-                You are prioritized for high-urgency jobs in your zone. Your live GPS is actively broadcasting.
+                {t('workerPriority.radarActiveDesc')}
               </p>
               <div className="text-[11px] font-bold text-emerald-700 bg-emerald-50 py-1.5 rounded-lg border border-emerald-200">
-                ● Ready for instant dispatch (5 mi radius)
+                ● {t('workerPriority.readyDispatch')}
               </div>
             </div>
           </div>
@@ -534,29 +530,29 @@ export default function WorkerPriorityRequests() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
-                    Priority Dispatch Radar
+                    {t('workerPriority.priorityDispatchRadar')}
                   </span>
                   <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-emerald-200">
-                    Live GPS Stream
+                    {t('workerPriority.liveGpsStream')}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 mt-0.5">
-                  Road routing: <strong className="text-slate-800 font-bold">{routeMetrics?.source === 'google-maps' ? 'Google Maps Routes' : 'OSRM Turn-by-Turn'}</strong> • GPS Accuracy:{' '}
-                  <strong className="text-emerald-600 font-bold">{gpsAccuracy != null ? `±${gpsAccuracy}m` : 'acquiring…'}</strong>
+                  {t('workerPriority.roadRouting')} <strong className="text-slate-800 font-bold">{routeMetrics?.source === 'google-maps' ? t('workerPriority.googleMapsRoutes') : t('workerPriority.osrmRouting')}</strong> • {t('workerPriority.gpsAccuracy')}{' '}
+                  <strong className="text-emerald-600 font-bold">{gpsAccuracy != null ? `±${gpsAccuracy}m` : t('workerPriority.acquiring')}</strong>
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-6 text-xs text-slate-600 w-full lg:w-auto justify-between sm:justify-start border-y lg:border-y-0 border-slate-100 py-2 lg:py-0">
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Distance to Customer</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('workerPriority.distanceToCustomer')}</span>
                 <span className="text-sm font-black text-emerald-600">
                   {routeMetrics?.distanceKm != null ? `${routeMetrics.distanceKm} km` : '—'}
                 </span>
               </div>
               <div className="h-6 w-px bg-slate-200"></div>
               <div className="flex flex-col">
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Est. Drive Time</span>
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">{t('workerPriority.estDriveTime')}</span>
                 <span className="text-sm font-black text-blue-600">
                   {routeMetrics?.durationMinutes != null ? `~${routeMetrics.durationMinutes} min` : '—'}
                 </span>
@@ -568,7 +564,7 @@ export default function WorkerPriorityRequests() {
                 to="/worker/bookings"
                 className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold border border-blue-700 flex items-center gap-1.5 transition shadow-sm"
               >
-                <span>Bookings Queue</span>
+                <span>{t('workerPriority.bookingsQueue')}</span>
               </Link>
             </div>
           </div>
